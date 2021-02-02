@@ -40,7 +40,6 @@ def batch_eval(points, eval_func, num_samples=512 * 512 * 512):
             points[:, i * num_samples:i * num_samples + num_samples])
     if num_pts % num_samples:
         sdf[num_batches * num_samples:] = eval_func(points[:, num_batches * num_samples:])
-
     return sdf
 
 
