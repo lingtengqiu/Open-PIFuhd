@@ -42,7 +42,7 @@ def train_epochs(model, optimizer, cfg, args, train_loader,test_loader,resume_ep
         #define train_loss
         train_loss = AverageMeter()
         iter_data_time = time.time()
-        for idx,data in enumerate(train_loader):    
+        for idx,data in enumerate(train_loader): 
             iter_start_time = time.time()
             #adjust learning rate
             lr_epoch = epoch+idx/len(train_loader)

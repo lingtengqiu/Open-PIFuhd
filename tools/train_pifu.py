@@ -87,7 +87,6 @@ if __name__ == "__main__":
         epoch = 0
     gallery_id['save_path'] = checkpoints_path
     #train model, details see in engineer/core/train.py
-    
     train_epochs(model, optimizer, cfg, args, train_dataloader,test_dataloader,epoch,gallery_id)
 
 

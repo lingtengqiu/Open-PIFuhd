@@ -30,11 +30,18 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
         B_MIN = np.array([-1, -1, -1])
         B_MAX = np.array([1, 1, 1])
         projection_matrix = np.identity(4)
-        projection_matrix[1, 1] = -1
+        # projection_matrix[1, 1] = -1
         calib = torch.Tensor(projection_matrix).float().cuda()
 
         name = batch['name'][0]
         img = batch['img']
+        try:
+            origin_calib = batch['calib'][0]
+        except:
+            #there is not origina calib matrix
+            origin_calib = None
+            projection_matrix[1, 1] = -1
+            calib = torch.Tensor(projection_matrix).float().cuda()
 
         save_gallery_path = os.path.join(gallery_id,name.split('/')[-2])
         os.makedirs(save_gallery_path,exist_ok=True)
@@ -44,7 +51,8 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
             'calib': calib.unsqueeze(0),
             'mask': None,
             'b_min': B_MIN,
-            'b_max': B_MAX}
+            'b_max': B_MAX,
+            'origin_calib':origin_calib}
         gen_mesh(cfg,model,data,save_gallery_path)
 
 
@@ -81,7 +89,6 @@ def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
             bs = image_tensor.shape[0]
             res, error = model(image_tensor, sample_tensor, calib_tensor, labels=label_tensor)
             IOU, prec, recall = compute_acc(res,label_tensor)
-            bs = bs
             if args.dist:
                 error = reduce_tensor(error)
                 IOU = reduce_tensor(IOU)

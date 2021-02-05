@@ -71,6 +71,8 @@ def gen_mesh(cfg, net, data, save_path, use_octree=True):
         pass
     image_tensor = data['img'].cuda()
     calib_tensor = data['calib'].cuda()
+    origin_calib_tensor = data['origin_calib']
+
 
     if len(image_tensor.shape) == 3:
         image_tensor = image_tensor[None,...]
@@ -84,14 +86,27 @@ def gen_mesh(cfg, net, data, save_path, use_octree=True):
         save_img_list.append(save_img)
     save_img = np.concatenate(save_img_list, axis=1)
     Image.fromarray(np.uint8(save_img[:,:,::-1])).save(save_img_path)
-    verts, faces, _, _ = reconstruction(
-        net, calib_tensor, cfg.resolution, b_min, b_max, use_octree=use_octree)
-    save_obj_mesh(os.path.join(save_path,"mesh.obj"), verts, faces)
 
 
+    verts, faces, _, _ = reconstruction(net, calib_tensor, cfg.resolution, b_min, b_max, use_octree=use_octree)
+    
+    verts,flip_face = transfer_uv_to_world(verts,origin_calib_tensor)
+    save_obj_mesh(os.path.join(save_path,"mesh.obj"), verts, faces,flip_face)
 
 
-def save_obj_mesh(mesh_path, verts, faces):
+def transfer_uv_to_world(verts,origin_calib,img_size=512,z_depth=200):
+
+    
+    if origin_calib == None:
+        return verts,False
+    verts[...,2] = verts[...,2]*z_depth/(img_size//2)
+    mat = origin_calib.detach().numpy()
+    inv_mat = np.linalg.inv(mat)
+    homo_verts = np.concatenate([verts,np.ones((verts.shape[0],1))],axis=1)
+    ori_verts = np.matmul(inv_mat,homo_verts.T).T
+    return ori_verts[...,:3],True
+
+def save_obj_mesh(mesh_path, verts, faces,flip=False):
     '''save mesh, xxx.obj
     
     Parameters:
@@ -106,7 +121,10 @@ def save_obj_mesh(mesh_path, verts, faces):
         file.write('v %.4f %.4f %.4f\n' % (v[0], v[1], v[2]))
     for f in faces:
         f_plus = f + 1
-        file.write('f %d %d %d\n' % (f_plus[0], f_plus[2], f_plus[1]))
+        if flip:           
+            file.write('f %d %d %d\n' % (f_plus[0], f_plus[1], f_plus[2]))
+        else:
+            file.write('f %d %d %d\n' % (f_plus[0], f_plus[2], f_plus[1]))
     file.close()
 
 

@@ -1,0 +1,1 @@
+python ./tools/eval_pifu.py  --config ./configs/PIFu_Render_People_HG.py 

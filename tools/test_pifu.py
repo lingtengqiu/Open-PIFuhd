@@ -42,7 +42,12 @@ if __name__ == "__main__":
     
     info_cfg(logger,cfg)  
 
+
     test_data_set = build_dataset(cfg.data.test)
+
+
+    
+
     test_dataloader = build_dataloader(test_data_set,cfg,args,phase='test')
     logger.info("test data size:{}".format(len(test_data_set)))
 
@@ -59,7 +64,7 @@ if __name__ == "__main__":
     
     epoch = load_checkpoints(model,None,resume_path,args)
 
-    inference(model, cfg, args, test_dataloader, epoch,gallery_id['test'])
+    inference(model, cfg, args, test_dataloader, epoch,gallery_id['test'],len(test_data_set.subjects))
 
 
 

@@ -9,6 +9,7 @@ import logging
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
+from collections import OrderedDict
 
 logger = logging.getLogger("logger.trainer")
 
@@ -59,7 +60,14 @@ def load_checkpoints(net,optimizer,resume_path,args):
         checkpoints = torch.load(resume_path,map_location=map_location)
     else:
         checkpoints = torch.load(resume_path)
-    net.load_state_dict(checkpoints['model_state_dict'])
+    try:
+        net.load_state_dict(checkpoints['model_state_dict'])
+    except:
+        model_state_dict = checkpoints['model_state_dict']
+        weight = OrderedDict()
+        for key in model_state_dict.keys():
+            weight[key.replace('module.',"")] = model_state_dict[key]
+        net.load_state_dict(weight)
     if optimizer is not None:
         #train
         optimizer.load_state_dict(checkpoints['optimizer_state_dict'])

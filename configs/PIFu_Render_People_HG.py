@@ -87,5 +87,14 @@ val_epoch = 1
 start_val_epoch = 6
 "----------------------------- inference setting -------------------------------"
 resolution = 256 #for inference
-"-------------------------------- config---name   -------------------------------"
+"-------------------------------- config name --------------------------------"
 name='PIFu_Render_People_HG'
+
+"-------------------------------- render --------------------------------"
+render_cfg = dict(
+    type='Noraml_Render',
+    width = 512,
+    height = 512,
+    render_lib ='face3d',
+    flip =True
+)
