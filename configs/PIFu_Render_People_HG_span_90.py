@@ -10,7 +10,7 @@ model = dict(
         depth=dict(
         type='DepthNormalizer',input_size = 512,z_size=200.0),
         projection_mode='orthogonal',
-        error_term='bce'
+        error_term='mse'
     )
 )
 "----------------------------- Datasets options -----------------------------"
@@ -41,7 +41,8 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=5.,
     check_occ='trimesh',
-    debug=False
+    debug=False,
+    span=90
     ),
     test=dict(
     type = "RPDataset",
@@ -56,7 +57,8 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=5.,
     check_occ='trimesh',
-    debug=False
+    debug=False,
+    span = 90
     )
 )
 train_collect_fn = 'train_loader_collate_fn'
@@ -66,20 +68,20 @@ checkpoints = "./checkpoints"
 logger = True
 "----------------------------- optimizer options -----------------------------"
 optim_para=dict(
-    optimizer = dict(type='adam',lr=2e-4),
+    optimizer = dict(type='RMSprop',lr=1e-3,momentum=0, weight_decay=0.0000),
 )
 "----------------------------- training strategies -----------------------------"
 num_gpu = 1
 lr_policy="stoneLR"
 lr_warm_up = 1e-4
-warm_epoch= 1
-LR=2e-4
-num_epoch=30
+warm_epoch= 5
+LR=1e-3
+num_epoch=100
 batch_size = 4
 test_batch_size = 1
 scheduler=dict(
     gamma = 0.1,
-    stone = [10,25] 
+    stone = [60,80] 
 )
 save_fre_epoch = 2
 "----------------------------- evaluation setting -------------------------------"
@@ -87,5 +89,14 @@ val_epoch = 1
 start_val_epoch = 0
 "----------------------------- inference setting -------------------------------"
 resolution = 256 #for inference
-"-------------------------------- config---name   -------------------------------"
-name='PIFu_Render_People_HG_adam_bce'
+"-------------------------------- config name --------------------------------"
+name='PIFu_Render_People_HG'
+
+"-------------------------------- render --------------------------------"
+render_cfg = dict(
+    type='Noraml_Render',
+    width = 512,
+    height = 512,
+    render_lib ='face3d',
+    flip =True
+)

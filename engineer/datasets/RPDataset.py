@@ -25,13 +25,14 @@ import logging
 logger = logging.getLogger('logger.trainer')
 
 
+
 @DATASETS.register_module
 class RPDataset(Dataset):
     #Note that __B_MIN and __B_max is means that bbox of valid sample zone for all images, unit cm
     __B_MIN = np.array([-128, -28, -128])
     __B_MAX = np.array([128, 228, 128])
     def __init__(self,input_dir,cache,pipeline=None,is_train=True,projection_mode='orthogonal',random_multiview=False,img_size = 512,num_views = 1,num_sample_points = 5000, \
-        num_sample_color = 0,sample_sigma=5.,check_occ='trimesh',debug=False):
+        num_sample_color = 0,sample_sigma=5.,check_occ='trimesh',debug=False, span = 1,normal = False,sample_aim = 5):
         '''
         Render People Dataset
         Parameters:
@@ -45,6 +46,10 @@ class RPDataset(Dataset):
             sample_sigma: the distance we disturb points sampled from surface. unit: cm e.g you wanna get 5cm, you need input 5
             check_occ: which method, you use it to check whether sample points are inside or outside of mesh. option: trimesh |
             debug: debug the dataset like project the points into img_space scape
+            span: span step from 0 deg to 359 deg, e.g. if span == 2, deg: 0 2 4 6 ...,
+            normal: whether, you want to use normal map, default False, if you want to train pifuhd, you need set it to 'True'
+            sample_aim: set sample distance from mesh, according to PIFu it use 5 cm while PIFuhd choose 5 cm for coarse PIFu and 3 cm
+                to fine PIFu
         Return:
             None
         '''
@@ -57,10 +62,10 @@ class RPDataset(Dataset):
         self.num_views = num_views
         self.num_sample_points = num_sample_points
         self.num_sample_color = num_sample_color
-        self.sigma = sample_sigma
+        self.sigma = sample_sigma if type(sample_sigma) == list else [sample_sigma]
         
         #view from render
-        self.__yaw_list = list(range(0,360,1))
+        self.__yaw_list = list(range(0,360,span))
         self.__pitch_list = [0]
         self._get_infos()
         self.subjects = self.get_subjects()
@@ -68,6 +73,9 @@ class RPDataset(Dataset):
         self.cache = cache
         self.check_occ =check_occ
         self.debug = debug
+        self.span = span
+        self.normal = normal
+        self.sample_aim = sample_aim
 
 
         if not pipeline == None:
@@ -89,7 +97,10 @@ class RPDataset(Dataset):
             sample_sigma=sample_sigma,
             cache=cache,
             check_occ=check_occ,
-            debug = debug
+            debug = debug,
+            span = span,
+            normal = normal,
+            sample_aim = sample_aim
         )
 
         # sampling joints
@@ -111,6 +122,31 @@ class RPDataset(Dataset):
         yid = tmp % len(self.yaw)
         pid = tmp // len(self.yaw)
         return sid,yid,pid 
+    def __build_sigma_path(self,sigma_list,subject,obj_name):
+        '''build_sigma_path 
+        Parameters:
+            sigma_list: the number of sigmas you want to set to sample points from mesh
+            subject: subject class 
+            obj_name: obj's name
+        return:
+            [len(sigma)] list of path of file saved according to sigma_list
+        '''
+        if type(self.sigma) == list:
+            cache_sigma_path = []
+            for sigma in self.sigma:
+                cache_sigma_path.append(os.path.join(self.cache,subject,obj_name.replace('.obj','_sigma_{}cm.npz'.format(sigma))))
+        else:
+            cache_sigma_path = [os.path.join(self.cache,subject,obj_name.replace('.obj','_sigma_{}cm.npz'.format(self.sigma)))]
+        return cache_sigma_path
+    def check_sigma_path(self,sigma_path_list):
+        '''check whether all sigma_path exites 
+        '''
+        for sigma_path in sigma_path_list:
+            if not os.path.exists(sigma_path):
+                return False
+        return True
+
+
     def sample_cloud_points(self):
         for index in tqdm(range(len(self.subjects))):
             sid,yid,pid = self.get_index(index)
@@ -120,27 +156,37 @@ class RPDataset(Dataset):
             obj_name = os.listdir(path)[0]
             obj_path = os.path.join(path,obj_name)
             if not os.path.exists(os.path.join(self.cache,subject)):
-                os.mkdir(os.path.join(self.cache,subject))
-            cache_sigma_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_sigma_{}cm.npz'.format(self.sigma)))
+                os.makedirs(os.path.join(self.cache,subject),exist_ok =  True)
+            
+            cache_sigma_path = self.__build_sigma_path(self.sigma,subject,obj_name)
             cache_random_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_random.npz'))
 
-            if os.path.exists(cache_sigma_path) and os.path.exists(cache_random_path):
+            if self.check_sigma_path(cache_sigma_path) and os.path.exists(cache_random_path):
                 continue
 
             #obtain object state
             mesh = trimesh.load(obj_path)
             #like if-net, we sample points first, default, we sample 400000 points from here
             surface_points, _ = trimesh.sample.sample_surface(mesh, 400000)
-            sample_points = surface_points + np.random.normal(scale=self.sigma, size=surface_points.shape)
+
+            sample_points_list = []
+            sample_occ_v_list = []
+
+            for sigma in self.sigma:
+                sample_points = surface_points + np.random.normal(scale=sigma, size=surface_points.shape)
+                sample_points_list.append(sample_points)
             length = self.B_MAX - self.B_MIN
             random_points = np.random.rand(400000, 3) * length + self.B_MIN
             if self.check_occ =='trimesh':
-                sample_occ_v = mesh.contains(sample_points)
+                for sample_points in sample_points_list:
+                    sample_occ_v = mesh.contains(sample_points)
+                    sample_occ_v_list.append(sample_occ_v)
                 random_occ_v = mesh.contains(random_points)
             else:
                 NotImplementedError
             #save points
-            np.savez(cache_sigma_path,points=sample_points,label=sample_occ_v)
+            for cache_path,sample_points,sample_occ_v in zip(cache_sigma_path, sample_points_list,sample_occ_v_list):
+                np.savez(cache_path,points=sample_points,label=sample_occ_v)
             np.savez(cache_random_path,points=random_points,label=random_occ_v)
 
 
@@ -179,7 +225,7 @@ class RPDataset(Dataset):
 
         
         obj_name = os.listdir(path)[0]
-        cache_sigma_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_sigma_{}cm.npz'.format(self.sigma)))
+        cache_sigma_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_sigma_{}cm.npz'.format(self.sample_aim)))
         cache_random_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_random.npz'))
 
         assert os.path.exists(cache_sigma_path) and os.path.exists(cache_random_path)
@@ -458,6 +504,7 @@ class RPDataset(Dataset):
         #which index is not like array in c++ or python 
         #it likes arr[pitch][yaw][subjects]
         sid,yid,pid = self.get_index(index)
+        
         #sequence is following:
         #pid, yid ,sid
         subject = self.subjects[sid]

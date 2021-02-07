@@ -62,12 +62,11 @@ def compute_acc(pred, gt, thresh=0.5):
 
 def computer_metrics(pred,target):
     from engineer.render.PIFuhd.gl.normal_render import NormalRender
-    normal_render = NormalRender(width=512, height=512)
 
+    normal_render = NormalRender(width=512, height=512)
     pred = trimesh.load(pred)
     target = trimesh.load(target)
     normal_loss = get_reproj_normal_error(normal_render,pred,target)
-
     chamfer_loss = computer_chamfer_distance(pred,target)
     p2s = computer_surface_dist(pred,target)
 

@@ -40,6 +40,7 @@ def build_dpp_net(net):
     first you need change all of bn layers to sybn layer
     then, you need transfer your model to ddp
     '''
+    nn.GroupNorm
     net = nn.SyncBatchNorm.convert_sync_batchnorm(net).cuda()
     net = DDP(net,device_ids=[dist.get_rank()],find_unused_parameters=True)
     return net
@@ -67,7 +68,10 @@ def load_checkpoints(net,optimizer,resume_path,args):
         weight = OrderedDict()
         for key in model_state_dict.keys():
             weight[key.replace('module.',"")] = model_state_dict[key]
-        net.load_state_dict(weight)
+        try:
+            net.load_state_dict(weight)
+        except:
+            net.module.load_state_dict(weight)
     if optimizer is not None:
         #train
         optimizer.load_state_dict(checkpoints['optimizer_state_dict'])

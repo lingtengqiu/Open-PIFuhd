@@ -42,10 +42,7 @@ if __name__ == "__main__":
     args = opt
     assert args.config is not None,"you must give your model config"
     cfg = Config.fromfile(args.config)
-
     render = build_render(cfg.render_cfg)
-
-
     if cfg.logger :
         logger=setup_test_logger(cfg.name,rank= args.local_rank)
     if args.dist:
@@ -68,7 +65,9 @@ if __name__ == "__main__":
     p2s = AverageMeter()
     for i in range(len(test_data_set.subjects)):
         obj = test_data_set[i]
-        target_mesh_path = test_data_set[i]['mesh_path']
+        target_mesh_path = obj['mesh_path']
+        img_mask = np.transpose(obj['mask'][0].numpy(), (1, 2, 0))[...,0]
+        
         name = target_mesh_path.split("/")[-1]
         pred_path = os.path.join(test_save_path,name)
         target = glob.glob(os.path.join(target_mesh_path,"*.obj"))[-1]
@@ -78,24 +77,28 @@ if __name__ == "__main__":
 
 
 
-        #tutorial for how to use our normal render class 
+        # tutorial for how to use our normal render class 
         # render.camera = obj['calib']  
         # tgt_mesh = trimesh.load(target)
         # pred_mesh = trimesh.load(pred)
         # render.set_mesh(tgt_mesh.vertices, tgt_mesh.faces)
-        # render.set_world_view_point(90)
+        # render.set_world_view_point(0)
         # render.world2uv()
         # render.set_attribute()
         # render.draw()
-        # tgt_img = render.get_render()
-
+        # tgt_img,tgt_mask = render.get_render()
+        # tgt_img = np.asarray(tgt_img).copy()
+        # tgt_img[img_mask==0] = 0
+        # img = Image.fromarray(tgt_img)
+        # img.show()
+        # xxx 
 
         # render.set_mesh(pred_mesh.vertices, pred_mesh.faces)
-        # render.set_world_view_point(90)
+        # render.set_world_view_point(0)
         # render.world2uv()
         # render.set_attribute()
         # render.draw()
-        # pred_img = render.get_render() 
+        # pred_img,_ = render.get_render() 
         # tgt_img.show()
         # pred_img.show()
 

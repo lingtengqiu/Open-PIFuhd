@@ -57,7 +57,6 @@ class Noraml_Render(_Base_Render):
             mask = normal_map[...,3]
             normal_map = normal_map[...,:3]
             normal_map = (normal_map+1)/2
-            normal_map[mask==0] = 0 
             self.render_image = Image.fromarray((normal_map*255).astype(np.uint8))
             self.render_mask = mask
         else:

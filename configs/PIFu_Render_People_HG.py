@@ -41,7 +41,8 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=5.,
     check_occ='trimesh',
-    debug=False
+    debug=False,
+    span=1,
     ),
     test=dict(
     type = "RPDataset",
@@ -56,7 +57,8 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=5.,
     check_occ='trimesh',
-    debug=False
+    debug=False,
+    span = 1
     )
 )
 train_collect_fn = 'train_loader_collate_fn'
@@ -74,17 +76,17 @@ lr_policy="stoneLR"
 lr_warm_up = 1e-5
 warm_epoch= 5
 LR=1e-3
-num_epoch=100
+num_epoch=30
 batch_size = 4
 test_batch_size = 1
 scheduler=dict(
     gamma = 0.1,
-    stone = [60,80] 
+    stone = [15,25] 
 )
 save_fre_epoch = 2
 "----------------------------- evaluation setting -------------------------------"
 val_epoch = 1
-start_val_epoch = 6
+start_val_epoch = 0
 "----------------------------- inference setting -------------------------------"
 resolution = 256 #for inference
 "-------------------------------- config name --------------------------------"
