@@ -20,12 +20,27 @@ class img_pad(object):
     def __call__(self,data):
         img = data['img']
         mask = data['mask']
+
+        front = data['front_normal']
+        back = data['back_normal']
+        back_mask = data['back_mask']
+
+
         size = img.shape[0]
         h,w,_ = img.shape
         pad_size = int(size*self.pad_ratio)
+
+
         img = np.pad(img,((pad_size,pad_size),(pad_size,pad_size),(0,0)),'constant',constant_values = 0)
 
         mask = np.pad(mask,((pad_size,pad_size),(pad_size,pad_size),(0,0)),'constant',constant_values = 0)
+
+        if front is not None:
+            data['front_normal'] = np.pad(front,((pad_size,pad_size),(pad_size,pad_size),(0,0)),'constant',constant_values = 0)
+            data['back_normal'] = np.pad(back,((pad_size,pad_size),(pad_size,pad_size),(0,0)),'constant',constant_values = 0)
+            data['back_mask'] = np.pad(back_mask,((pad_size,pad_size),(pad_size,pad_size),(0,0)),'constant',constant_values = 0)          
+
+
         
         data['mask'] = mask
         data['img'] = img
@@ -46,15 +61,31 @@ class flip(object):
     def __call__(self,data):
         img = data['img']
         mask = data['mask']
-        scale_intrinsic = data['scale_intrinsic']
+        
+        front = data['front_normal']
+        back = data['back_normal']
+        back_mask = data['back_mask']
 
-        if np.random.rand() > self.flip_ratio:
+        scale_intrinsic = data['scale_intrinsic']
+        if np.random.rand() > 1 - self.flip_ratio:
             scale_intrinsic[0, 0] *= -1
             img = img[:,::-1,:]
             mask = mask[:,::-1,:]
+            if front is not None:
+                front = front[:,::-1,:]
+                back = back[:,::-1,:]
+                back_mask = back_mask[:,::-1,:]
+                data['flip'] = True
+
         data['mask'] = mask
         data['img'] = img
         data['scale_intrinsic']=scale_intrinsic
+        data['front_normal'] = front
+        data['back_normal'] = back
+        data['back_mask'] = back_mask
+
+
+
         return data
 
     def __repr__(self):
@@ -70,6 +101,13 @@ class scale(object):
         img = data['img']
         mask = data['mask']
         scale_intrinsic = data['scale_intrinsic']
+
+        front = data['front_normal']
+        back = data['back_normal']
+
+        back_mask = data['back_mask']
+
+
         h,w,_ = img.shape
 
         w = int(rand_scale * w)
@@ -77,12 +115,20 @@ class scale(object):
 
         img = cv2.resize(img,(w,h),interpolation=cv2.INTER_LINEAR)
         mask  =cv2.resize(mask,(w,h),interpolation=cv2.INTER_NEAREST)
+
+        if front is not None:        
+            data['front_normal'] = cv2.resize(front,(w,h),interpolation=cv2.INTER_LINEAR)
+            data['back_normal'] = cv2.resize(back,(w,h),interpolation=cv2.INTER_LINEAR)
+            data['back_mask'] = cv2.resize(back_mask,(w,h),interpolation=cv2.INTER_NEAREST)
+
         scale_intrinsic *= rand_scale
         scale_intrinsic[3, 3] = 1
         
         data['mask'] = mask
         data['img'] = img
         data['scale_intrinsic']=scale_intrinsic
+
+
         return data
 
     def __repr__(self):
@@ -101,6 +147,11 @@ class random_crop_trans(object):
         h,w,_ = img.shape
         th,tw = data['th'],data['tw']
         trans_intrinsic = data['trans_intrinsic']
+
+
+        front = data['front_normal']
+        back = data['back_normal']
+        back_mask = data['back_mask']
 
 
         if self.enable:
@@ -126,6 +177,11 @@ class random_crop_trans(object):
         data['mask'] = mask[y1:y1+th,x1:x1+tw,...]
         data['trans_intrinsic'] = trans_intrinsic
 
+        if front is not None:        
+            data['front_normal'] = front[y1:y1+th,x1:x1+tw,...]
+            data['back_normal'] = back[y1:y1+th,x1:x1+tw,...]
+            data['back_mask'] = back_mask[y1:y1+th,x1:x1+tw,...]
+
         return data
 
     def __repr__(self):
@@ -134,18 +190,31 @@ class random_crop_trans(object):
 
 @PIPELINES.register_module
 class resize(object):
-    def __init__(self,size:tuple):
+    def __init__(self,size:tuple,normal=False):
         self.size = size
+        self.normal = normal
     def __call__(self,data):
         img = data['img']
         mask = data['mask']
-        
         data['img'] = cv2.resize(img,self.size)
-        data['mask'] = cv2.resize(mask,self.size)
+        data['mask'] = cv2.resize(mask,self.size,interpolation=cv2.INTER_NEAREST)
+
+        if self.normal:
+            data['front_normal'] = cv2.resize(data['front_normal'],self.size)
+            data['back_normal'] = cv2.resize(data['back_normal'],self.size)
+            data['back_mask'] = cv2.resize(data['back_mask'],self.size,interpolation=cv2.INTER_NEAREST)
+
+
+        # cv2.namedWindow('img', 0);
+        # cv2.resizeWindow('img', 1024,1024);
+        # cat = np.concatenate([data['back_normal'],data['front_normal']],axis=1)
+        # cv2.imshow("img",cat)
+        # cv2.waitKey()
+
         return data
 
     def __repr__(self):
-        repr_str="{}(size={})".format(self.__class__.__name__,self.size)
+        repr_str="{}(size={}, normal={})".format(self.__class__.__name__,self.size, self.normal)
         return repr_str
 
 @PIPELINES.register_module
@@ -168,6 +237,28 @@ class to_camera(object):
         repr_str="{}()".format(self.__class__.__name__)
         return repr_str
 
+
+@PIPELINES.register_module
+class normalize_normal(object):
+    def __init__(self):
+        pass
+    def __call__(self,data):
+        front = data['front_normal']
+        back = data['back_normal']
+        front = (front)*2-1
+        back = (back)*2-1
+        if data['flip']:
+            #BGR
+            #we fine actually, we should
+            front[2,...] = - front[2,...]
+            back[2,...] = - back[2,...]
+
+        data['front_normal'] = front
+        data['back_normal'] = back   
+        return data
+    def __repr__(self):
+        repr_str="{}()".format(self.__class__.__name__)
+        return repr_str
 
 @PIPELINES.register_module
 class normalize(object):

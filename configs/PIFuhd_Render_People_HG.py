@@ -17,14 +17,17 @@ model = dict(
 dataset_type = 'RenderPeople'
 train_pipeline = [
     dict(type='img_pad'),dict(type='flip',flip_ratio=0.5),dict(type='scale'),dict(type='random_crop_trans'), 
-    dict(type='color_jitter',brightness=0., contrast=0., saturation=0.0, hue=0.0,keys=['img']),dict(type='resize',size=(1024,1024)),
-    dict(type='to_camera'),dict(type='ImageToTensor',keys=['img','mask']),dict(type='normalize',mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])
-    ,dict(type='ToTensor',keys=['calib','extrinsic']),
+    dict(type='color_jitter',brightness=0., contrast=0., saturation=0.0, hue=0.0,keys=['img']),dict(type='resize',size=(512,512),normal=True),
+    dict(type='to_camera'),dict(type='ImageToTensor',keys=['img','mask','front_normal','back_normal','back_mask']),dict(type='normalize',mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])
+    ,dict(type='normalize_normal'),dict(type='ToTensor',keys=['calib','extrinsic']),
 ]
 
 test_pipeline = [
-    dict(type='resize',size=(1024,1024)),dict(type='to_camera'),dict(type='ImageToTensor',keys=['img','mask']),
+    dict(type='resize',size=(512,512),normal =True),
+    dict(type='to_camera'),
+    dict(type='ImageToTensor',keys=['img','mask','front_normal','back_normal','back_mask']),
     dict(type='normalize',mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5]),
+    dict(type='normalize_normal'),
     dict(type='ToTensor',keys=['calib','extrinsic']),
 ]
 data = dict(
@@ -32,7 +35,7 @@ data = dict(
     type = "RPDataset",
     input_dir = '../Garment/render_gen_1024_train/',
     is_train = True,
-    pipeline=test_pipeline,
+    pipeline=train_pipeline,
     cache="../Garment/cache/render_gen_1024/rp_train/",
     random_multiview=False,
     img_size = 1024,
@@ -60,8 +63,8 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
-    debug=False,
-    span = 1,
+    debug=True,
+    span = 90,
     normal = True,
     sample_aim = 5.
     )

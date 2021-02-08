@@ -67,6 +67,7 @@ class RPDataset(Dataset):
         #view from render
         self.__yaw_list = list(range(0,360,span))
         self.__pitch_list = [0]
+        self.normal = normal
         self._get_infos()
         self.subjects = self.get_subjects()
         self.random_multiview = random_multiview
@@ -74,7 +75,6 @@ class RPDataset(Dataset):
         self.check_occ =check_occ
         self.debug = debug
         self.span = span
-        self.normal = normal
         self.sample_aim = sample_aim
 
 
@@ -282,6 +282,7 @@ class RPDataset(Dataset):
         self.uv_render = []
         self.uv_pos = []
         self.obj = []
+        self.render_normal = []
 
 
         for root in input_list:
@@ -292,7 +293,9 @@ class RPDataset(Dataset):
             uv_normal = os.path.join(root, 'UV_NORMAL')
             uv_render = os.path.join(root, 'UV_RENDER')
             uv_pos = os.path.join(root, 'UV_POS')
-            obj = os.path.join(root, 'GEO', 'OBJ')            
+            obj = os.path.join(root, 'GEO', 'OBJ')    
+            if self.normal:
+                render_normal = os.path.join(root,'RENDER_NORMAL')     
             try:
                 assert os.path.exists(render)
                 assert os.path.exists(mask)
@@ -302,6 +305,9 @@ class RPDataset(Dataset):
                 assert os.path.exists(uv_render)
                 assert os.path.exists(uv_pos)
                 assert os.path.exists(obj)
+
+                if self.normal:
+                    os.path.exists(render_normal)
             except:
                 continue
             self.render.append(render)
@@ -313,6 +319,9 @@ class RPDataset(Dataset):
             self.uv_pos.append(uv_pos)
             self.obj.append(obj)
             self.root.append(root)
+
+            if self.normal:
+                self.render_normal.append(render_normal)
 
     def get_subjects(self):
         all_subjects = []
@@ -363,10 +372,23 @@ class RPDataset(Dataset):
         mask_list = []
         extrinsic_list = []
 
+        front_normal_list = []
+        back_normal_list = []
+        back_mask_list = []
+        
+
         for vid in view_ids:
             param_path = os.path.join(self.param[sid], subject, '%d_%d_%02d.npy' % (vid, pitch, 0))
             render_path = os.path.join(self.render[sid], subject, '%d_%d_%02d.jpg' % (vid, pitch, 0))
-            mask_path = os.path.join(self.mask[sid], subject, '%d_%d_%02d.png' % (vid, pitch, 0))
+            mask_path = os.path.join(self.mask[sid], subject, '%d_%d_%02d.png' % (vid, pitch, 0)) 
+
+            if self.normal:
+                front_render_normal_path = os.path.join(self.render_normal[sid],subject,'%d_%d_%02d.jpg' % (vid, pitch, 0))
+                back_render_normal_path = os.path.join(self.render_normal[sid],subject,'%d_%d_%02d.jpg' % ((vid+180)%360, pitch, 0))
+                back_mask_path = os.path.join(self.mask[sid], subject, '%d_%d_%02d.png' % ((vid+180)%360, pitch, 0)) 
+                assert os.path.exists(front_render_normal_path)
+                assert os.path.exists(back_render_normal_path)
+                assert os.path.exists(back_mask_path)
 
             assert os.path.exists(param_path)
             assert os.path.exists(render_path)
@@ -374,7 +396,6 @@ class RPDataset(Dataset):
 
             # loading calibration data
             param = np.load(param_path, allow_pickle=True)
-
             # pixel unit / world unit is equal to 1
             # pixel unit / uv unit ---> is ortho_ratio
             ortho_ratio = param.item().get('ortho_ratio')
@@ -409,16 +430,31 @@ class RPDataset(Dataset):
 
 
             mask = np.asarray(cv2.imread(mask_path)[...,0:])
-            render = np.asarray(cv2.imread(render_path))   
+            render = np.asarray(cv2.imread(render_path))  
+            
+
+            if self.normal:
+                front_normal = np.asarray(cv2.imread(front_render_normal_path))
+                back_normal = np.asarray(cv2.imread(back_render_normal_path))
+                back_mask = np.asarray(cv2.imread(back_mask_path)[...,0:])
+            else:
+                front_normal = None
+                back_normal = None
+                back_mask = None
+
             data = {
                 'img':render,
                 'mask':mask,
                 'scale_intrinsic':scale_intrinsic,
                 'trans_intrinsic':trans_intrinsic,
                 'uv_intrinsic':uv_intrinsic,
-                'extrinsic':extrinsic
+                'extrinsic':extrinsic,
+                'front_normal':front_normal,
+                'back_normal': back_normal,
+                'back_mask': back_mask,
+                'flip': False
             }
-
+        
             if self.transformer is not None:
                 data = self.transformer(data)
             else:
@@ -427,23 +463,41 @@ class RPDataset(Dataset):
             mask = data['mask']
             calib = data['calib']
             extrinsic = data['extrinsic']
-            mask_list.append(mask)
 
+            front_normal = data['front_normal']
+            back_normal =data['back_normal']
+            back_mask =data['back_mask']
+
+            
+
+            mask_list.append(mask)
             if len(mask.shape)!=len(render.shape):
                 mask = mask.unsqueeze(-1)
-
+            if len(back_mask.shape)!=len(render.shape):
+                back_mask = back_mask.unsqueeze(-1)
             #remove background
+            
             render = mask.expand_as(render) * render
             render_list.append(render)
             calib_list.append(calib)
             extrinsic_list.append(extrinsic)
-        
+
+            
+            if self.normal:
+                front_normal = mask.expand_as(front_normal) * front_normal
+                back_normal = back_mask.expand_as(back_normal) * back_normal
+                front_normal_list.append(front_normal)
+                back_normal_list.append(back_normal)
+                back_mask_list.append(back_mask)
         return {
             'name':render_path,
             'img': torch.stack(render_list, dim=0),
             'calib': torch.stack(calib_list, dim=0),
             'extrinsic': torch.stack(extrinsic_list, dim=0),
-            'mask': torch.stack(mask_list, dim=0)
+            'mask': torch.stack(mask_list, dim=0),
+            'front_normal':torch.stack(front_normal_list,dim=0),
+            'back_normal':torch.stack(back_normal_list,dim=0),
+            'back_mask': torch.stack(back_mask_list,dim=0)
         }
 
     #*********************property********************#
@@ -465,6 +519,16 @@ class RPDataset(Dataset):
     def __debug(self,render_data,sample_data):
         orimg = np.uint8((np.transpose(render_data['img'][0].numpy(), (1, 2, 0)) * 0.5 + 0.5)[:, :, :] * 255.0)
 
+        if self.normal:
+            
+            front = render_data['front_normal'][0]
+            back = render_data['back_normal'][0]
+            
+
+            front = np.uint8(((np.transpose(render_data['front_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
+            back = np.uint8(((np.transpose(render_data['back_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
+            cv2.imshow("front",front)
+            cv2.imshow("back",back)
         rot = render_data['calib'][0,:3, :3]
         trans = render_data['calib'][0,:3, 3:4]
         
@@ -476,7 +540,6 @@ class RPDataset(Dataset):
             
             img = cv2.circle(img,(p[0],p[1]),2,(0,255,0),-1)
         cv2.imshow('inside', img)
-        cv2.waitKey()
 
         pts = torch.addmm(trans, rot, sample_data['samples'][:, sample_data['labels'][0] < 0.5])  # [3, N]
         pts = 0.5 * (pts.numpy().T + 1.0) * render_data['img'].size(2)

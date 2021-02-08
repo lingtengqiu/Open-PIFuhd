@@ -54,8 +54,8 @@ class ImageToTensor(object):
         self.keys = keys
 
     def __call__(self, results):
-        for key in self.keys:
-            results[key] = to_tensor(results[key].transpose(2, 0, 1))/255.
+        for key in self.keys: 
+            results[key] = to_tensor(results[key].transpose(2, 0, 1))/255.            
         return results
 
     def __repr__(self):
