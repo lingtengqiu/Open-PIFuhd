@@ -86,6 +86,15 @@ def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
             calib_tensor = data['calib'].cuda()
             sample_tensor = data['samples'].cuda()
             label_tensor = data['labels'].cuda()
+
+
+            if cfg.use_front:
+                front_normal = data['front_normal'].cuda()
+                image_tensor = torch.cat([image_tensor,front_normal],dim = 1)
+            if cfg.use_back:
+                back_normal = data['back_normal'].cuda()
+                image_tensor = torch.cat([image_tensor,back_normal],dim = 1)
+
             bs = image_tensor.shape[0]
             res, error = model(image_tensor, sample_tensor, calib_tensor, labels=label_tensor)
             IOU, prec, recall = compute_acc(res,label_tensor)

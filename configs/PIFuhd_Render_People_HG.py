@@ -1,12 +1,15 @@
 import numpy as np
+"---------------------------- normal options -----------------------------"
+use_front = True
+use_back = True
 "----------------------------- Model options -----------------------------"
 model = dict(
     PIFu=dict(
         type='PIFUNet', 
         head =dict(
-        type='SurfaceHead',filter_channels=[257, 1024, 512, 256, 128, 1], num_views = 1, no_residual=True, last_op='sigmoid'),
+        type='PIFuhd_Surface_Head',filter_channels=[257, 1024, 512, 256, 128, 1], merge_layer = 2, res_layers=[2, 3, 4], norm= None,last_op='sigmoid'),
         backbone=dict(
-        type = 'Hourglass',num_stacks= 4,num_hourglass=2,norm='group',hg_down='ave_pool',hourglass_dim= 256),
+        type = 'Hourglass',num_stacks= 4,num_hourglass=2,norm='group',hg_down='ave_pool',hourglass_dim= 256,use_front = use_front, use_back = use_back),
         depth=dict(
         type='DepthNormalizer',input_size = 512,z_size=200.0),
         projection_mode='orthogonal',
@@ -63,7 +66,7 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
-    debug=True,
+    debug=False,
     span = 90,
     normal = True,
     sample_aim = 5.
@@ -81,17 +84,17 @@ optim_para=dict(
 "----------------------------- training strategies -----------------------------"
 num_gpu = 1
 lr_policy="stoneLR"
-lr_warm_up = 1e-5
-warm_epoch= 5
+lr_warm_up = 1e-4
+warm_epoch= 1
 LR=1e-3
-num_epoch=30
-batch_size = 4
+num_epoch=12
+batch_size = 2
 test_batch_size = 1
 scheduler=dict(
     gamma = 0.1,
-    stone = [15,25] 
+    stone = [10] 
 )
-save_fre_epoch = 2
+save_fre_epoch = 1
 "----------------------------- evaluation setting -------------------------------"
 val_epoch = 1
 start_val_epoch = 0

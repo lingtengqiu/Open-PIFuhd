@@ -57,8 +57,6 @@ class HourGlass_Stack(nn.Module):
     def forward(self, x):
         return self._forward(self.depth, x)
 
-
-
 @BACKBONES.register_module
 class Hourglass(_BaseBackbone):
     '''
@@ -67,7 +65,8 @@ class Hourglass(_BaseBackbone):
         Hourglass as a backbone for PIFu networks
 
     '''
-    def __init__(self,num_stacks:int = 4,num_hourglass:int=2,norm:str ='group',hg_down:str='ave_pool',hourglass_dim : int = 256):
+    def __init__(self,num_stacks:int = 4,num_hourglass:int=2,norm:str ='group',hg_down:str='ave_pool',hourglass_dim : int = 256 , use_front= \
+        False, use_back =False):
         '''
         Initial function of Hourglass
         Parameters:
@@ -75,11 +74,10 @@ class Hourglass(_BaseBackbone):
             --num_hourglass, how many block of hourglass stack. Default =2
             --norm: which normalization you use? group for group normalization while
             batch for batchnormalization
-            --hg_down', down sample method, type=str, default='ave_pool', help='ave pool || conv64 || conv128'
+            --hg_down', down sample method, type=str, default='ave_pool', help='ave pool || conv64 || conv128 || not_down'
             --hourglass_dim', the number of channels of output features of hourglass network stack
              type=int, default='256', help='256 | 512'
         '''
-        
         super(Hourglass, self).__init__()
         self.name = 'Hourglass Backbone'
         self.num_stacks = num_stacks
@@ -88,11 +86,20 @@ class Hourglass(_BaseBackbone):
         self.hg_down = hg_down
         self.hourglass_dim = hourglass_dim
 
-        self.input_para={"num_stacks":num_stacks,'num_hourglass':num_hourglass,'norm':norm,'hg_down':hg_down,'hourglass_dim':hourglass_dim}
+        self.use_front = use_front
+        self.use_back = use_back
 
+        self.input_para={"num_stacks":num_stacks,'num_hourglass':num_hourglass,'norm':norm,'hg_down':hg_down,'hourglass_dim':hourglass_dim,
+        "use_front": use_front,"use_back": use_back}
+        
+        inc = 3
+        if self.use_front:
+            inc+=3
+        if self.use_back:
+            inc+=3
 
         # backbone of resnet
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
+        self.conv1 = nn.Conv2d(inc, 64, kernel_size=7, stride=2, padding=3)
         if self.norm == 'batch':
             self.bn1 = nn.BatchNorm2d(64)
         elif self.norm == 'group':
@@ -104,7 +111,7 @@ class Hourglass(_BaseBackbone):
         elif self.hg_down == 'conv128':
             self.conv2 = ConvBlock(64, 128, self.norm)
             self.down_conv2 = nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1)
-        elif self.hg_down == 'ave_pool':
+        elif self.hg_down == 'ave_pool' or self.hg_down == 'no_down':
             self.conv2 = ConvBlock(64, 128, self.norm)
         else:
             raise NameError('Unknown Fan Filter setting!')
@@ -146,13 +153,17 @@ class Hourglass(_BaseBackbone):
         x = F.relu(self.bn1(self.conv1(x)), True)
         #B,64,256,256
         tmpx = x
+
         if self.hg_down == 'ave_pool':
             x = F.avg_pool2d(self.conv2(x), 2, stride=2)
         elif self.hg_down in ['conv64', 'conv128']:
             x = self.conv2(x)
             x = self.down_conv2(x)
+        elif self.down_type == 'no_down':
+            x = self.conv2(x)
         else:
             raise NameError('Unknown Fan Filter setting!')
+        
         normx = x
         #B, 128,128,128
 

@@ -429,14 +429,16 @@ class RPDataset(Dataset):
             trans_intrinsic = np.identity(4)
 
 
-            mask = np.asarray(cv2.imread(mask_path)[...,0:])
+            mask = np.asarray(cv2.imread(mask_path))
             render = np.asarray(cv2.imread(render_path))  
             
 
             if self.normal:
                 front_normal = np.asarray(cv2.imread(front_render_normal_path))
-                back_normal = np.asarray(cv2.imread(back_render_normal_path))
-                back_mask = np.asarray(cv2.imread(back_mask_path)[...,0:])
+                #you need flip for 
+                back_normal = np.asarray(cv2.imread(back_render_normal_path)[:,::-1,:])
+                back_mask = np.asarray(cv2.imread(back_mask_path)[:,::-1,:])
+
             else:
                 front_normal = None
                 back_normal = None

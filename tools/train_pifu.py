@@ -45,14 +45,16 @@ if __name__ == "__main__":
     
     #print cfg env
     info_cfg(logger,cfg)
-    
 
     #build dataset
     train_data_set = build_dataset(cfg.data.train)
+
     train_dataloader = build_dataloader(train_data_set,cfg,args)
     test_data_set = build_dataset(cfg.data.test)
 
-
+    # for i in range(len(test_data_set)):
+    #     test_data_set[i]
+    # xxxx
 
     test_dataloader = build_dataloader(test_data_set,cfg,args,phase='test')
     logger.info("train data size:{}".format(len(train_data_set)))
@@ -60,6 +62,8 @@ if __name__ == "__main__":
 
     #build model
     model = build_model(cfg.model)
+
+
     if args.dist == True:
         #build distributed network
         model = build_dpp_net(model)

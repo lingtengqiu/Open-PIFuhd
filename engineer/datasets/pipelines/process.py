@@ -249,9 +249,12 @@ class normalize_normal(object):
         back = (back)*2-1
         if data['flip']:
             #BGR
-            #we fine actually, we should
+            #we fine actually, we should change z-axis
             front[2,...] = - front[2,...]
-            back[2,...] = - back[2,...]
+        else:
+            back[2,...] = -back[2,...]
+        back[0,...] = -back[0,...]
+
 
         data['front_normal'] = front
         data['back_normal'] = back   
