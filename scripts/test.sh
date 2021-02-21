@@ -2,4 +2,7 @@
 #     ./tools/test_pifu.py --dist  --config ./configs/PIFu_Carton_HG.py  
 
 # python ./tools/test_pifu.py  --config ./configs/PIFu_Carton_HG.py
-python ./tools/test_pifu.py  --config ./configs/PIFu_Render_People_HG.py 
+# python ./tools/test_pifu.py  --config ./configs/PIFu_Animals_HG.py
+# python ./tools/test_pifu.py  --config ./configs/PIFu_Render_People_HG.py 
+
+python ./tools/test_pifu.py  --config ./configs/PIFuhd_Render_People_HG.py

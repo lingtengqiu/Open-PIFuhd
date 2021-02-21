@@ -13,15 +13,15 @@ import time
 import logging 
 import torch.distributed as dist
 from engineer.utils.mesh_utils import gen_mesh
-
-
 logger = logging.getLogger('logger.trainer')
+
 
 
 
 def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
     model.eval()
     watched = 0
+
     for batch in test_loader:
         watched+=1
         if watched>gallery_time:
@@ -35,6 +35,15 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
 
         name = batch['name'][0]
         img = batch['img']
+
+
+        if cfg.use_front:
+            front_normal = batch['front_normal']
+            img = torch.cat([img,front_normal],dim = 1)
+        if cfg.use_back:
+            back_normal = batch['back_normal']
+            img = torch.cat([img,back_normal],dim = 1)
+
         try:
             origin_calib = batch['calib'][0]
         except:

@@ -91,4 +91,4 @@ class SurfaceHead(_BaseHead):
 
         if self.last_op:
             y = self.last_op(y)
-        return y
+        return y,tmpy

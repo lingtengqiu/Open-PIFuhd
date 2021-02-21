@@ -118,7 +118,11 @@ class Carton_Dataset(Dataset):
         '''
         prepare for images-preprocessed
         '''
-        self.img_list  = sorted(glob.glob(os.path.join(self.input_dir,"*.jpeg")))
+        img_list  = [glob.glob(os.path.join(self.input_dir,"*.{}".format(item))) for item in ["jpeg",'jpg']]
+        self.img_list = []
+        for _ in img_list:
+            self.img_list.extend(_)
+        self.img_list = sorted(self.img_list)
         self.json_list = sorted(glob.glob(os.path.join(self.input_dir,"*.json")))
     def get_subjects(self):
         subjects = []

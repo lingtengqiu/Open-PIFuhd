@@ -1,3 +1,6 @@
+'''
+training coarse PIFu with gt normal map
+'''
 import numpy as np
 "---------------------------- normal options -----------------------------"
 use_front = True
@@ -88,7 +91,7 @@ lr_warm_up = 1e-4
 warm_epoch= 1
 LR=1e-3
 num_epoch=12
-batch_size = 2
+batch_size = 4
 test_batch_size = 1
 scheduler=dict(
     gamma = 0.1,
@@ -101,7 +104,7 @@ start_val_epoch = 0
 "----------------------------- inference setting -------------------------------"
 resolution = 256 #for inference
 "-------------------------------- config name --------------------------------"
-name='PIFu_Render_People_HG'
+name='PIFuhd_Render_People_HG'
 
 "-------------------------------- render --------------------------------"
 render_cfg = dict(

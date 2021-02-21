@@ -1,6 +1,6 @@
 '''
 @author:lingteng qiu
-@name:Open-Pifu inference
+@name:generator normal map according to mesh
 '''
 import sys
 sys.path.append("./")

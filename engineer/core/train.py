@@ -43,7 +43,6 @@ def train_epochs(model, optimizer, cfg, args, train_loader,test_loader,resume_ep
         train_loss = AverageMeter()
         iter_data_time = time.time()
         for idx,data in enumerate(train_loader): 
-            break
             iter_start_time = time.time()
             #adjust learning rate
             lr_epoch = epoch+idx/len(train_loader)
@@ -70,6 +69,7 @@ def train_epochs(model, optimizer, cfg, args, train_loader,test_loader,resume_ep
 
             bs = img.shape[0]
             preds,loss = model(images = img,calibs=calib,points=samples,labels=labels)
+            
             #distributed learning
             #optimizer step
             optimizer.zero_grad()

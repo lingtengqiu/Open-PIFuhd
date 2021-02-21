@@ -7,7 +7,7 @@ import torch
 
 def reconstruction(net, calib_tensor,
                    resolution, b_min, b_max,
-                   use_octree=False, num_samples=40000, transform=None):
+                   use_octree=False, num_samples=50000, transform=None):
     '''
     Reconstruct meshes from sdf predicted by the network.
     :param net: a BasePixImpNet object. call image filter beforehead.
@@ -33,7 +33,6 @@ def reconstruction(net, calib_tensor,
         net.query(samples, calib_tensor)
         pred = net.get_preds()[0][0]
         return pred.detach().cpu().numpy()
-
     # Then we evaluate the grid
     if use_octree:
         sdf = eval_grid_octree(coords, eval_func, num_samples=num_samples)
@@ -85,8 +84,9 @@ def gen_mesh(cfg, net, data, save_path, use_octree=True):
         save_img = (np.transpose(image_tensor[v].detach().cpu().numpy(), (1, 2, 0)) * 0.5 + 0.5)[:, :, :] * 255.0
         save_img_list.append(save_img)
     save_img = np.concatenate(save_img_list, axis=1)
-    Image.fromarray(np.uint8(save_img[:,:,::-1])).save(save_img_path)
+    save_img = save_img[...,:3]
 
+    Image.fromarray(np.uint8(save_img[:,:,::-1])).save(save_img_path)
 
     verts, faces, _, _ = reconstruction(net, calib_tensor, cfg.resolution, b_min, b_max, use_octree=use_octree)
     
