@@ -13,6 +13,7 @@ import torch.nn.functional as F
 
 
 
+
 @PIPELINES.register_module
 class img_pad(object):
     def __init__(self,pad_ratio = 0.1):
@@ -196,6 +197,7 @@ class resize(object):
     def __call__(self,data):
         img = data['img']
         mask = data['mask']
+
         data['img'] = cv2.resize(img,self.size)
         data['mask'] = cv2.resize(mask,self.size,interpolation=cv2.INTER_NEAREST)
 

@@ -1,6 +1,7 @@
 '''
 @author: lingteng qiu
 @data  : 2021-1-21
+@emai: lingtengqiu@link.cuhk.edu.cn
 RenderPeople Dataset:https://renderpeople.com/
 '''
 import cv2
@@ -22,8 +23,8 @@ import trimesh
 import numpy as np
 from tqdm import tqdm
 import logging
+import torch.nn.functional as F
 logger = logging.getLogger('logger.trainer')
-
 
 
 @DATASETS.register_module
@@ -32,7 +33,7 @@ class RPDataset(Dataset):
     __B_MIN = np.array([-128, -28, -128])
     __B_MAX = np.array([128, 228, 128])
     def __init__(self,input_dir,cache,pipeline=None,is_train=True,projection_mode='orthogonal',random_multiview=False,img_size = 512,num_views = 1,num_sample_points = 5000, \
-        num_sample_color = 0,sample_sigma=5.,check_occ='trimesh',debug=False, span = 1,normal = False,sample_aim = 5):
+        num_sample_color = 0,sample_sigma=5.,check_occ='trimesh',debug=False, span = 1,normal = False,sample_aim = 5,fine_pifu = False,crop_windows=512):
         '''
         Render People Dataset
         Parameters:
@@ -50,6 +51,8 @@ class RPDataset(Dataset):
             normal: whether, you want to use normal map, default False, if you want to train pifuhd, you need set it to 'True'
             sample_aim: set sample distance from mesh, according to PIFu it use 5 cm while PIFuhd choose 5 cm for coarse PIFu and 3 cm
                 to fine PIFu
+            fine_pifu: whether train fine pifu,
+            crop_windows: crop window size using for pifuhd, default, 512
         Return:
             None
         '''
@@ -63,7 +66,6 @@ class RPDataset(Dataset):
         self.num_sample_points = num_sample_points
         self.num_sample_color = num_sample_color
         self.sigma = sample_sigma if type(sample_sigma) == list else [sample_sigma]
-        
         #view from render
         self.__yaw_list = list(range(0,360,span))
         self.__pitch_list = [0]
@@ -76,6 +78,8 @@ class RPDataset(Dataset):
         self.debug = debug
         self.span = span
         self.sample_aim = sample_aim
+        self.fine_pifu =fine_pifu
+        self.crop_windows_size=crop_windows
 
 
         if not pipeline == None:
@@ -100,7 +104,9 @@ class RPDataset(Dataset):
             debug = debug,
             span = span,
             normal = normal,
-            sample_aim = sample_aim
+            sample_aim = sample_aim,
+            fine_pifu = fine_pifu,
+            crop_windows_size = crop_windows
         )
 
         # sampling joints
@@ -188,12 +194,43 @@ class RPDataset(Dataset):
             for cache_path,sample_points,sample_occ_v in zip(cache_sigma_path, sample_points_list,sample_occ_v_list):
                 np.savez(cache_path,points=sample_points,label=sample_occ_v)
             np.savez(cache_random_path,points=random_points,label=random_occ_v)
-
-
-
-
     
-    def select_sampling_method(self, subject,path):
+
+    def sample_rect(self, sample_points, sample_inside, random_points, random_inside, trans, rot):
+        '''sample rect using for fine-PIFu in PIFuhd 
+
+        Parameters:
+            sample_points: points we sample from mesh
+            sample_inside: labels of points indicates whether inside or ouside mesh
+            trans: trans matrix using for project sample points into image 
+            rot: rotation matrix using for project sample points into image
+            range of value [-1,1]
+        return:
+            crop sample points, sample labels, random points, random labels and rect(w0,h0,w1,h1)
+        '''
+        def map(sample_points,trans,rot):            
+            samples = sample_points.T
+            samples = torch.Tensor(samples).float()
+            pts = torch.addmm(trans, rot, samples).T.numpy()
+            x = pts[...,0]
+            y = pts[...,1]
+            return x,y
+        x_0,y_0 = -np.random.rand(),-np.random.rand()
+        x_1,y_1 = x_0+1,y_0+1
+
+
+        s_x,s_y = map(sample_points,trans,rot)
+        s_mask = (s_x>x_0) & (s_x<x_1)&(s_y>y_0)&(s_y<y_1)
+        r_x,r_y = map(random_points,trans,rot)
+        r_mask = (r_x>x_0) & (r_x<x_1)&(r_y>y_0)&(r_y<y_1)
+
+
+
+        return sample_points[s_mask],sample_inside[s_mask],random_points[r_mask],random_inside[r_mask],[x_0,y_0,x_1,y_1]
+
+
+
+    def select_sampling_method(self, subject, path, rot =None, trans = None):
 
         '''
         sample points from mesh
@@ -221,9 +258,6 @@ class RPDataset(Dataset):
         
             return sample_points[index],inside[index]    
 
-
-
-        
         obj_name = os.listdir(path)[0]
         cache_sigma_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_sigma_{}cm.npz'.format(self.sample_aim)))
         cache_random_path = os.path.join(self.cache,subject,obj_name.replace('.obj','_random.npz'))
@@ -232,19 +266,22 @@ class RPDataset(Dataset):
 
         sample_points,sample_inside = load_trimesh(cache_sigma_path)
         random_points,random_inside = load_trimesh(cache_random_path)
+
+        if rot is not None and trans is not None:
+            sample_points,sample_inside,random_points,random_inside,rect = self.sample_rect(sample_points,sample_inside,random_points,random_inside,trans,rot)
+        else:
+            rect = None
+        
+
         # the surface points and background surface, we have 16:1, 16 from surface and 1 from background
         #the range of surface_points 
-
         sample_points,sample_label = _sample(sample_points,sample_inside,4*self.num_sample_points)
         random_points,random_label = _sample(random_points,random_inside,self.num_sample_points//4)
-        
+
         sample_points = np.concatenate([sample_points, random_points], 0)
         inside = np.concatenate([sample_label, random_label], 0)
-
         #shuffle two different sample data
         sample_points,inside = _shuffle(sample_points,inside)
-
-
         #ray judge outside or inside
         inside_points = sample_points[inside]
         outside_points = sample_points[np.logical_not(inside)]
@@ -260,9 +297,11 @@ class RPDataset(Dataset):
 
         samples = torch.Tensor(samples).float()
         labels = torch.Tensor(labels).float()
+        
         return {
             'samples': samples,
-            'labels': labels
+            'labels': labels,
+            'rect':rect
         }
     def _get_infos(self):
         '''
@@ -319,7 +358,6 @@ class RPDataset(Dataset):
             self.uv_pos.append(uv_pos)
             self.obj.append(obj)
             self.root.append(root)
-
             if self.normal:
                 self.render_normal.append(render_normal)
 
@@ -341,7 +379,6 @@ class RPDataset(Dataset):
             return sorted(list(set(all_subjects) - set(var_subjects)))
         else:
             return sorted(list(var_subjects))
-    
 
     def __get_render(self, subject, num_views, yid=0, pid=0,sid=0, random_sample=False):
         '''
@@ -376,7 +413,6 @@ class RPDataset(Dataset):
         back_normal_list = []
         back_mask_list = []
         
-
         for vid in view_ids:
             param_path = os.path.join(self.param[sid], subject, '%d_%d_%02d.npy' % (vid, pitch, 0))
             render_path = os.path.join(self.render[sid], subject, '%d_%d_%02d.jpg' % (vid, pitch, 0))
@@ -517,38 +553,110 @@ class RPDataset(Dataset):
     def B_MIN(self):
         return self.__B_MIN
     
+    def __crop_sample_relative_coordinate(self,res):
+        '''computing relative coordinate of sample points
+
+        Parameters:
+            res: data parameters
+        
+        return:
+           relative coordinate about sample points 
+        '''
+        samples = res['samples']
+        rect = res['rect']
+        rot = res['calib'][0,:3, :3]
+        trans = res['calib'][0,:3, 3:4]
+        
+        inside_pts = torch.addmm(trans, rot, samples).T
+
+        pts = inside_pts[...,:2]
+        pts[...,0]-=rect[0]
+        pts[...,1]-=rect[1]
+        pts = (pts*2-1)
+        return pts.T
+    def __crop_windows(self,data):
+        img = data['img']
+        front_normal = data['front_normal']
+        back_normal = data['back_normal']
+        mask = data['mask']
+        back_mask = data['back_mask']
+        rect = np.asarray(data['rect'])
+        rect = (rect+1)*self.crop_windows_size
+        rect = np.asarray(rect,np.int)
+        x0,y0,x1,y1 = rect
+
+
+        crop_img = img[...,y0:y1,x0:x1]
+        crop_front_normal = front_normal[...,y0:y1,x0:x1]
+        crop_back_normal = back_normal[...,y0:y1,x0:x1]
+
+
+        #downsample input image
+        data['img'] = F.interpolate(img,(self.crop_windows_size,self.crop_windows_size),mode='bilinear', align_corners=True)
+        data['front_normal'] = F.interpolate(front_normal,(self.crop_windows_size,self.crop_windows_size),mode='bilinear', align_corners=True)
+        data['back_normal'] = F.interpolate(back_normal,(self.crop_windows_size,self.crop_windows_size),mode='bilinear', align_corners=True)
+
+        data['crop_img'] = crop_img
+        data['crop_front_normal'] = crop_front_normal
+        data['crop_back_normal'] = crop_back_normal
+        return data
 
     def __debug(self,render_data,sample_data):
+
+        rect = render_data['rect']
         orimg = np.uint8((np.transpose(render_data['img'][0].numpy(), (1, 2, 0)) * 0.5 + 0.5)[:, :, :] * 255.0)
-
         if self.normal:
-            
-            front = render_data['front_normal'][0]
-            back = render_data['back_normal'][0]
-            
-
             front = np.uint8(((np.transpose(render_data['front_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
             back = np.uint8(((np.transpose(render_data['back_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
             cv2.imshow("front",front)
             cv2.imshow("back",back)
         rot = render_data['calib'][0,:3, :3]
         trans = render_data['calib'][0,:3, 3:4]
-        
-        pts = torch.addmm(trans, rot, sample_data['samples'][:, sample_data['labels'][0] > 0.5])  # [3, N]
-  
-        pts = 0.5 * (pts.numpy().T + 1.0) * render_data['img'].size(2)
+
+
+
+        inside_pts = torch.addmm(trans, rot, sample_data['samples'][:, sample_data['labels'][0] > 0.5])  # [3, N]
+        pts = 0.5 * (inside_pts.numpy().T + 1.0) * render_data['img'].size(2)
         img=orimg.copy()
         for p in pts:
-            
             img = cv2.circle(img,(p[0],p[1]),2,(0,255,0),-1)
         cv2.imshow('inside', img)
 
-        pts = torch.addmm(trans, rot, sample_data['samples'][:, sample_data['labels'][0] < 0.5])  # [3, N]
-        pts = 0.5 * (pts.numpy().T + 1.0) * render_data['img'].size(2)
+        outside_pts = torch.addmm(trans, rot, sample_data['samples'][:, sample_data['labels'][0] < 0.5])  # [3, N]
+        pts = 0.5 * (outside_pts.numpy().T + 1.0) * render_data['img'].size(2)
         img=orimg.copy()
         for p in pts:
             img = cv2.circle(img,(p[0],p[1]),2,(0,0,255),-1)
         cv2.imshow('outside', img)
+
+        #crop_img debug
+        if 'crop_img' in render_data.keys():
+            crop_img = np.uint8((np.transpose(render_data['crop_img'][0].numpy(), (1, 2, 0)) * 0.5 + 0.5)[:, :, :] * 255.0)
+            crop_front = np.uint8(((np.transpose(render_data['crop_front_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
+            crop_back = np.uint8(((np.transpose(render_data['crop_back_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
+            cv2.imshow("crop_front",crop_front)
+            cv2.imshow("crop_back",crop_back)
+
+
+            pts = render_data['crop_pts'][:, sample_data['labels'][0] > 0.5]
+
+   
+            pts = 0.5 * (pts.numpy().T + 1.0) * render_data['crop_img'].size(2)
+
+            img = crop_img.copy()
+            for p in pts:
+                img = cv2.circle(img,(p[0],p[1]),2,(0,255,0),-1)
+            cv2.imshow('crop_inside', img)
+
+
+            pts = render_data['crop_pts'][:, sample_data['labels'][0] < 0.5]
+            pts = 0.5 * (pts.numpy().T + 1.0) * render_data['crop_img'].size(2)
+            img = crop_img.copy()
+            for p in pts:
+                img = cv2.circle(img,(p[0],p[1]),2,(0,255,0),-1)
+            cv2.imshow('crop_outside', img)
+
+
         cv2.waitKey()
 
     #******************magic method*****************#
@@ -588,13 +696,26 @@ class RPDataset(Dataset):
         render_data = self.__get_render(subject, num_views=self.num_views, yid=yid, pid=pid,sid=sid,
                                         random_sample=self.random_multiview)
         res.update(render_data)
-
+        
+        #crop image_use
+        if self.fine_pifu:
+            rot = render_data['calib'][0,:3, :3]
+            trans = render_data['calib'][0,:3, 3:4]
+        else:
+            rot =None
+            trans= None
         if self.num_sample_points:
-            sample_data = self.select_sampling_method(subject,res['mesh_path'])
+            sample_data = self.select_sampling_method(subject,res['mesh_path'],rot,trans)
             res.update(sample_data)
 
+        if self.fine_pifu:
+            crop_pts = self.__crop_sample_relative_coordinate(res)
+            res['crop_pts'] = crop_pts
+            res = self.__crop_windows(res)
+
+
         if self.debug:
-            self.__debug(render_data,sample_data)
+            self.__debug(res,sample_data)
         
         return res
 

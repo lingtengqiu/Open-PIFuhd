@@ -120,8 +120,8 @@ class PIFUNet(_BasePIFuNet):
 
         if self.skip_hourglass:
             tmpx_local_feature = self.index(self.tmpx, xy)
-        self.intermediate_preds_list = []
 
+        self.intermediate_preds_list = []
         for im_feat in self.im_feat_list:
             # [B, Feat_i + z, N]
             point_local_feat_list = [self.index(im_feat, xy), z_feat]

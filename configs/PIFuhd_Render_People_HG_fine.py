@@ -1,10 +1,11 @@
 '''
-training coarse PIFu with gt normal map
+training fine PIFu with gt normal map
 '''
 import numpy as np
 "---------------------------- normal options -----------------------------"
 use_front = True
 use_back = True
+fine_pifu =True
 "----------------------------- Model options -----------------------------"
 model = dict(
     PIFu=dict(
@@ -23,13 +24,13 @@ model = dict(
 dataset_type = 'RenderPeople'
 train_pipeline = [
     dict(type='img_pad'),dict(type='flip',flip_ratio=0.5),dict(type='scale'),dict(type='random_crop_trans'), 
-    dict(type='color_jitter',brightness=0., contrast=0., saturation=0.0, hue=0.0,keys=['img']),dict(type='resize',size=(512,512),normal=True),
+    dict(type='color_jitter',brightness=0., contrast=0., saturation=0.0, hue=0.0,keys=['img']),dict(type='resize',size=(1024,1024),normal=True),
     dict(type='to_camera'),dict(type='ImageToTensor',keys=['img','mask','front_normal','back_normal','back_mask']),dict(type='normalize',mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5])
     ,dict(type='normalize_normal'),dict(type='ToTensor',keys=['calib','extrinsic']),
 ]
 
 test_pipeline = [
-    dict(type='resize',size=(512,512),normal =True),
+    dict(type='resize',size=(1024,1024),normal =True),
     dict(type='to_camera'),
     dict(type='ImageToTensor',keys=['img','mask','front_normal','back_normal','back_mask']),
     dict(type='normalize',mean=[0.5,0.5,0.5],std=[0.5,0.5,0.5]),
@@ -46,14 +47,15 @@ data = dict(
     random_multiview=False,
     img_size = 1024,
     num_views = 1,
-    num_sample_points = 5000, 
+    num_sample_points = 8000, 
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
     debug=True,
     span=1,
     normal = True,
-    sample_aim = 5.
+    sample_aim = 3.,
+    fine_pifu = fine_pifu
     ),
 
     test=dict(
@@ -65,14 +67,15 @@ data = dict(
     random_multiview=False,
     img_size = 1024,
     num_views = 1,
-    num_sample_points = 5000, 
+    num_sample_points = 8000, 
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
     debug=False,
     span = 90,
     normal = True,
-    sample_aim = 5.
+    sample_aim = 3.,
+    fine_pifu = fine_pifu
     )
 )
 train_collect_fn = 'train_loader_collate_fn'

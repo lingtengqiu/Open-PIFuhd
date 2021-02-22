@@ -1,3 +1,7 @@
+'''
+@author:lingteng qiu
+@name:Open-Pifu
+'''
 import torch.nn as nn
 import torch
 from engineer.models.registry import BACKBONES

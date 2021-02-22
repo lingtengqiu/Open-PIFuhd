@@ -69,7 +69,6 @@ def train_epochs(model, optimizer, cfg, args, train_loader,test_loader,resume_ep
 
             bs = img.shape[0]
             preds,loss = model(images = img,calibs=calib,points=samples,labels=labels)
-            
             #distributed learning
             #optimizer step
             optimizer.zero_grad()

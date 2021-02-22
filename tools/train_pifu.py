@@ -52,9 +52,11 @@ if __name__ == "__main__":
     train_dataloader = build_dataloader(train_data_set,cfg,args)
     test_data_set = build_dataset(cfg.data.test)
 
-    # for i in range(len(test_data_set)):
-    #     test_data_set[i]
-    # xxxx
+    #debug datasets
+    for i in range(len(train_data_set)):
+        train_data_set[i]
+    for i in range(len(test_data_set)):
+        test_data_set[i]
 
     test_dataloader = build_dataloader(test_data_set,cfg,args,phase='test')
     logger.info("train data size:{}".format(len(train_data_set)))

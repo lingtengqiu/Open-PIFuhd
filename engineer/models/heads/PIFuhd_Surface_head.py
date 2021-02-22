@@ -93,5 +93,4 @@ class PIFuhd_Surface_Head(_BaseHead):
 
         if self.last_op is not None:
             y = self.last_op(y)
-
         return y, phi
