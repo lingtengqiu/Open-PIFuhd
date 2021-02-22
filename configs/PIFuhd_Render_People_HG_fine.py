@@ -2,23 +2,38 @@
 training fine PIFu with gt normal map
 '''
 import numpy as np
+"---------------------------- debug  options -----------------------------"
+debug = False
 "---------------------------- normal options -----------------------------"
 use_front = True
 use_back = True
 fine_pifu =True
 "----------------------------- Model options -----------------------------"
+
 model = dict(
-    PIFu=dict(
-        type='PIFUNet', 
+    PIFu = dict(
+        type='PIFuhdNet',
         head =dict(
-        type='PIFuhd_Surface_Head',filter_channels=[257, 1024, 512, 256, 128, 1], merge_layer = 2, res_layers=[2, 3, 4], norm= None,last_op='sigmoid'),
+        type='PIFuhd_Surface_Head',filter_channels=[272, 512, 256, 128, 1], merge_layer = -1, res_layers=[1,2], norm= None,last_op='sigmoid'),
         backbone=dict(
-        type = 'Hourglass',num_stacks= 4,num_hourglass=2,norm='group',hg_down='ave_pool',hourglass_dim= 256,use_front = use_front, use_back = use_back),
-        depth=dict(
-        type='DepthNormalizer',input_size = 512,z_size=200.0),
+        type = 'Hourglass',num_stacks= 1,num_hourglass=4,norm='group',hg_down='no_down',hourglass_dim= 16,use_front = use_front, use_back = use_back),
+        global_net=dict(PIFu=dict(
+            type='PIFUNet', 
+            head =dict(
+            type='PIFuhd_Surface_Head',filter_channels=[257, 1024, 512, 256, 128, 1], merge_layer = 2, res_layers=[2, 3, 4], norm= None,last_op='sigmoid'),
+            backbone=dict(
+            type = 'Hourglass',num_stacks= 4,num_hourglass=2,norm='group',hg_down='ave_pool',hourglass_dim= 256,use_front = use_front, use_back = use_back),
+            depth=dict(
+            type='DepthNormalizer',input_size = 512,z_size=200.0),
+            projection_mode='orthogonal',
+            error_term='mse'
+            ),
+            pretrain_weights='./checkpoints/PIFuhd_Render_People_HG/weight/LR=0.001-batch_size=4-schedule=stoneLR/epoch_best.tar'
+        ),
         projection_mode='orthogonal',
         error_term='mse'
     )
+
 )
 "----------------------------- Datasets options -----------------------------"
 dataset_type = 'RenderPeople'
@@ -51,7 +66,7 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
-    debug=True,
+    debug=debug,
     span=1,
     normal = True,
     sample_aim = 3.,
@@ -71,15 +86,15 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
-    debug=False,
+    debug=debug,
     span = 90,
     normal = True,
     sample_aim = 3.,
     fine_pifu = fine_pifu
     )
 )
-train_collect_fn = 'train_loader_collate_fn'
-test_collect_fn = 'test_loader_collate_fn'
+train_collect_fn = 'train_fine_pifu_loader_collate_fn'
+test_collect_fn = 'test_fine_pifu_loader_collate_fn'
 "----------------------------- checkpoints options -----------------------------"
 checkpoints = "./checkpoints"
 logger = True
@@ -94,7 +109,7 @@ lr_warm_up = 1e-4
 warm_epoch= 1
 LR=1e-3
 num_epoch=12
-batch_size = 4
+batch_size = 2
 test_batch_size = 1
 scheduler=dict(
     gamma = 0.1,
@@ -107,7 +122,7 @@ start_val_epoch = 0
 "----------------------------- inference setting -------------------------------"
 resolution = 256 #for inference
 "-------------------------------- config name --------------------------------"
-name='PIFuhd_Render_People_HG'
+name='PIFuhd_Render_People_HG_fine'
 
 "-------------------------------- render --------------------------------"
 render_cfg = dict(

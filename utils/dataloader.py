@@ -13,7 +13,9 @@ import random
 COLLECT_FN={
     'train_loader_collate_fn':loader.train_loader_collate_fn,
     'test_loader_collate_fn':loader.test_loader_collate_fn,
-    'carton_test_loader_collate_fn':loader.carton_test_loader_collate_fn
+    'carton_test_loader_collate_fn':loader.carton_test_loader_collate_fn,
+    'train_fine_pifu_loader_collate_fn':loader.train_fine_pifu_loader_collate_fn,
+    'test_fine_pifu_loader_collate_fn':loader.test_fine_pifu_loader_collate_fn,
 }
 
 def build_dataloader(dataset,cfg,args,phase = 'train'):

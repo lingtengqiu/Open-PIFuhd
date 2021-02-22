@@ -60,6 +60,7 @@ def train_epochs(model, optimizer, cfg, args, train_loader,test_loader,resume_ep
             samples = data['samples'].cuda()
             labels = data['labels'].cuda()
 
+
             if cfg.use_front:
                 front_normal = data['front_normal'].cuda()
                 img = torch.cat([img,front_normal],dim = 1)
@@ -67,8 +68,19 @@ def train_epochs(model, optimizer, cfg, args, train_loader,test_loader,resume_ep
                 back_normal = data['back_normal'].cuda()
                 img = torch.cat([img,back_normal],dim = 1)
 
+            if cfg.fine_pifu:
+                #collect fine pifu datasets
+                crop_query_points = data['crop_query_points'].cuda()
+                crop_img = data['crop_img']
+                crop_front_normal = data['crop_front_normal']
+                crop_back_normal = data['crop_back_normal']
+                crop_imgs = torch.cat([crop_img,crop_front_normal,crop_back_normal],dim=1).cuda()
+
             bs = img.shape[0]
-            preds,loss = model(images = img,calibs=calib,points=samples,labels=labels)
+            if not cfg.fine_pifu:
+                preds,loss = model(images = img,calibs=calib,points=samples,labels=labels)
+            else:
+                preds,loss = model(images = img,calibs=calib,points=samples,labels=labels,crop_imgs = crop_imgs, crop_points_query = crop_query_points)
             #distributed learning
             #optimizer step
             optimizer.zero_grad()

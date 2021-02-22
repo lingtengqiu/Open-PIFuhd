@@ -95,8 +95,6 @@ def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
             calib_tensor = data['calib'].cuda()
             sample_tensor = data['samples'].cuda()
             label_tensor = data['labels'].cuda()
-
-
             if cfg.use_front:
                 front_normal = data['front_normal'].cuda()
                 image_tensor = torch.cat([image_tensor,front_normal],dim = 1)
@@ -104,8 +102,21 @@ def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
                 back_normal = data['back_normal'].cuda()
                 image_tensor = torch.cat([image_tensor,back_normal],dim = 1)
 
+
+
+            if cfg.fine_pifu:
+                #collect fine pifu datasets
+                crop_query_points = data['crop_query_points'].cuda()
+                crop_img = data['crop_img']
+                crop_front_normal = data['crop_front_normal']
+                crop_back_normal = data['crop_back_normal']
+                crop_imgs = torch.cat([crop_img,crop_front_normal,crop_back_normal],dim=1).cuda()
+                
             bs = image_tensor.shape[0]
-            res, error = model(image_tensor, sample_tensor, calib_tensor, labels=label_tensor)
+            if not cfg.fine_pifu:
+                res, error = model(image_tensor, sample_tensor, calib_tensor, labels=label_tensor)
+            else:
+                res,error = model(images = image_tensor,calibs=calib_tensor,points=sample_tensor,labels=label_tensor,crop_imgs = crop_imgs, crop_points_query = crop_query_points)
             IOU, prec, recall = compute_acc(res,label_tensor)
             if args.dist:
                 error = reduce_tensor(error)

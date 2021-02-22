@@ -1,2 +1,3 @@
 from .PIFu import PIFUNet
-__all__=['PIFUNet']
+from .PIFuhd import PIFuhdNet
+__all__=['PIFUNet','PIFuhdNet']

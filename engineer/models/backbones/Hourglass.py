@@ -144,8 +144,7 @@ class Hourglass(_BaseBackbone):
                 self.add_module('al' + str(hg_module), nn.Conv2d(self.hourglass_dim,
                                                                  256, kernel_size=1, stride=1, padding=0))
 
-    def forward(self,x:torch.Tensor) -> torch.Tensor:
-
+    def forward(self,x:torch.Tensor):
         '''
         Parameters:
             X: Tensor[B,3,512,512] according to PIFu
@@ -163,7 +162,7 @@ class Hourglass(_BaseBackbone):
         elif self.hg_down in ['conv64', 'conv128']:
             x = self.conv2(x)
             x = self.down_conv2(x)
-        elif self.down_type == 'no_down':
+        elif self.hg_down == 'no_down':
             x = self.conv2(x)
         else:
             raise NameError('Unknown Fan Filter setting!')

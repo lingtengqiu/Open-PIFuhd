@@ -1,3 +1,6 @@
+'''
+@authro 
+'''
 import torch
 from torch.nn import init
 import torch.nn as nn
@@ -10,6 +13,20 @@ from tqdm import tqdm
 
 
 
+def freeze(net):
+    '''freeze module weights
+
+    Parameters:
+        net: network you want free the weights
+    '''
+    for module in net.modules():
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module.momentum = 0
+    for name, child in net.named_children():
+        for param in child.parameters():
+            param.requires_grad = False
+        freeze(child)
+    
 def conv3x3(in_planes, out_planes, strd=1, padding=1, bias=False):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3,

@@ -26,9 +26,4 @@ def build_head(cfg):
     return build(cfg, HEADS)
 
 def build_model(cfg):
-    # modules = [build_backbone(cfg.backbone), build_head(cfg.head),build_depth(cfg.depth)]
-    # cfg.PIFu.backbone=modules[0]
-    # cfg.PIFu.head = modules[1]
-    # cfg.PIFu.depth =modules[2]
     return build(cfg.PIFu,PIFU)
-    # return build_backbone(cfg.backbone)
