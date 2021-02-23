@@ -70,7 +70,8 @@ data = dict(
     span=1,
     normal = True,
     sample_aim = 3.,
-    fine_pifu = fine_pifu
+    fine_pifu = fine_pifu,
+    test = False
     ),
 
     test=dict(
@@ -90,7 +91,8 @@ data = dict(
     span = 90,
     normal = True,
     sample_aim = 3.,
-    fine_pifu = fine_pifu
+    fine_pifu = fine_pifu,
+    test = True
     )
 )
 train_collect_fn = 'train_fine_pifu_loader_collate_fn'

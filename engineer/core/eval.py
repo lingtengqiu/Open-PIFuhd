@@ -16,12 +16,9 @@ from engineer.utils.mesh_utils import gen_mesh
 logger = logging.getLogger('logger.trainer')
 
 
-
-
 def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
     model.eval()
     watched = 0
-
     for batch in test_loader:
         watched+=1
         if watched>gallery_time:
@@ -65,8 +62,6 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
         gen_mesh(cfg,model,data,save_gallery_path)
 
 
-
-
 def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
     '''test epoch
     Parameters:
@@ -88,7 +83,6 @@ def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
     epoch_start_time = time.time()
 
     
-
     with torch.no_grad():
         for idx,data in enumerate(test_loader):  
             image_tensor = data['img'].cuda()
@@ -111,11 +105,15 @@ def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):
                 crop_front_normal = data['crop_front_normal']
                 crop_back_normal = data['crop_back_normal']
                 crop_imgs = torch.cat([crop_img,crop_front_normal,crop_back_normal],dim=1).cuda()
-                
+
             bs = image_tensor.shape[0]
             if not cfg.fine_pifu:
                 res, error = model(image_tensor, sample_tensor, calib_tensor, labels=label_tensor)
             else:
+                #debug use
+                #res, error = model.global_net(image_tensor, sample_tensor, calib_tensor, labels=label_tensor)
+
+                #inference use
                 res,error = model(images = image_tensor,calibs=calib_tensor,points=sample_tensor,labels=label_tensor,crop_imgs = crop_imgs, crop_points_query = crop_query_points)
             IOU, prec, recall = compute_acc(res,label_tensor)
             if args.dist:

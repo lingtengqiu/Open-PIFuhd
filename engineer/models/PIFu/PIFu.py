@@ -132,6 +132,7 @@ class PIFUNet(_BasePIFuNet):
             point_local_feat = torch.cat(point_local_feat_list, 1)
 
             # out of image plane is always set to 0
+
             pred, phi = self.head(point_local_feat)
             pred = in_img[:,None].float() *pred
             self.intermediate_preds_list.append(pred)

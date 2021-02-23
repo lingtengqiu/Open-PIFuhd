@@ -33,7 +33,7 @@ class RPDataset(Dataset):
     __B_MIN = np.array([-128, -28, -128])
     __B_MAX = np.array([128, 228, 128])
     def __init__(self,input_dir,cache,pipeline=None,is_train=True,projection_mode='orthogonal',random_multiview=False,img_size = 512,num_views = 1,num_sample_points = 5000, \
-        num_sample_color = 0,sample_sigma=5.,check_occ='trimesh',debug=False, span = 1,normal = False,sample_aim = 5,fine_pifu = False,crop_windows=512):
+        num_sample_color = 0,sample_sigma=5.,check_occ='trimesh',debug=False, span = 1,normal = False,sample_aim = 5,fine_pifu = False,crop_windows=512,test = False):
         '''
         Render People Dataset
         Parameters:
@@ -53,6 +53,7 @@ class RPDataset(Dataset):
                 to fine PIFu
             fine_pifu: whether train fine pifu,
             crop_windows: crop window size using for pifuhd, default, 512
+            test: whether it is test-datasets 
         Return:
             None
         '''
@@ -80,6 +81,14 @@ class RPDataset(Dataset):
         self.sample_aim = sample_aim
         self.fine_pifu =fine_pifu
         self.crop_windows_size=crop_windows
+        self.test = test 
+        
+        #test_fine_pifu_config
+        self.origin_fine_pifu = self.fine_pifu
+        
+        if self.test:
+            self.fine_pifu = False
+            self.num_sample_points = self.num_sample_points*5
 
 
         if not pipeline == None:
@@ -106,7 +115,8 @@ class RPDataset(Dataset):
             normal = normal,
             sample_aim = sample_aim,
             fine_pifu = fine_pifu,
-            crop_windows_size = crop_windows
+            crop_windows_size = crop_windows,
+            test = test 
         )
 
         # sampling joints
@@ -574,7 +584,51 @@ class RPDataset(Dataset):
         pts[...,1]-=rect[1]
         pts = (pts*2-1)
         return pts.T
+    def __test_sample_coordinate(self,data):
+        '''crop windows for fine pifu, in test phase
+
+        Parameters:
+            data: training data, which has some keys e.g.
+                img, front_normal, back_normal, mask, back_mask, rect, etc.
+        
+        return 
+            data: it includes img,front_normal, back_normal which are resized according to self.crop_window_size.
+                More importantly, it need add it crop_img, crop_front_normal and crop_back_normal cropped by key 'rect'
+        '''
+        img = data['img']
+        front_normal = data['front_normal']
+        back_normal = data['back_normal']
+        mask = data['mask']
+        back_mask = data['back_mask']
+
+        data['img'] = F.interpolate(img,(self.crop_windows_size,self.crop_windows_size),mode='bilinear', align_corners=True)
+        data['front_normal'] = F.interpolate(front_normal,(self.crop_windows_size,self.crop_windows_size),mode='bilinear', align_corners=True)
+        data['back_normal'] = F.interpolate(back_normal,(self.crop_windows_size,self.crop_windows_size),mode='bilinear', align_corners=True)
+
+
+        data['crop_img'] = img
+        data['crop_front_normal'] = front_normal
+        data['crop_back_normal'] = back_normal
+        
+
+        rot = data['calib'][0,:3, :3]
+        trans = data['calib'][0,:3, 3:4]
+        inside_pts = torch.addmm(trans, rot, data['samples'])
+        data['crop_pts'] = inside_pts
+        
+        return data
+
     def __crop_windows(self,data):
+        '''crop windows for fine pifu, in training phase
+
+        Parameters:
+            data: training data, which has some keys e.g.
+                img, front_normal, back_normal, mask, back_mask, rect, etc.
+        
+        return 
+            data: it includes img,front_normal, back_normal which are resized according to self.crop_window_size.
+                More importantly, it need add it crop_img, crop_front_normal and crop_back_normal cropped by key 'rect'
+        '''
         img = data['img']
         front_normal = data['front_normal']
         back_normal = data['back_normal']
@@ -603,7 +657,6 @@ class RPDataset(Dataset):
 
     def __debug(self,render_data,sample_data):
 
-        rect = render_data['rect']
         orimg = np.uint8((np.transpose(render_data['img'][0].numpy(), (1, 2, 0)) * 0.5 + 0.5)[:, :, :] * 255.0)
         if self.normal:
             front = np.uint8(((np.transpose(render_data['front_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
@@ -612,8 +665,6 @@ class RPDataset(Dataset):
             cv2.imshow("back",back)
         rot = render_data['calib'][0,:3, :3]
         trans = render_data['calib'][0,:3, 3:4]
-
-
 
         inside_pts = torch.addmm(trans, rot, sample_data['samples'][:, sample_data['labels'][0] > 0.5])  # [3, N]
         pts = 0.5 * (inside_pts.numpy().T + 1.0) * render_data['img'].size(2)
@@ -636,18 +687,13 @@ class RPDataset(Dataset):
             crop_back = np.uint8(((np.transpose(render_data['crop_back_normal'][0].numpy(), (1, 2, 0))+1)/2)[:, :, :] * 255.0)
             cv2.imshow("crop_front",crop_front)
             cv2.imshow("crop_back",crop_back)
-
-
             pts = render_data['crop_pts'][:, sample_data['labels'][0] > 0.5]
 
-   
             pts = 0.5 * (pts.numpy().T + 1.0) * render_data['crop_img'].size(2)
-
             img = crop_img.copy()
             for p in pts:
                 img = cv2.circle(img,(p[0],p[1]),2,(0,255,0),-1)
             cv2.imshow('crop_inside', img)
-
 
             pts = render_data['crop_pts'][:, sample_data['labels'][0] < 0.5]
             pts = 0.5 * (pts.numpy().T + 1.0) * render_data['crop_img'].size(2)
@@ -655,8 +701,7 @@ class RPDataset(Dataset):
             for p in pts:
                 img = cv2.circle(img,(p[0],p[1]),2,(0,255,0),-1)
             cv2.imshow('crop_outside', img)
-
-
+            
         cv2.waitKey()
 
     #******************magic method*****************#
@@ -712,6 +757,9 @@ class RPDataset(Dataset):
             crop_pts = self.__crop_sample_relative_coordinate(res)
             res['crop_pts'] = crop_pts
             res = self.__crop_windows(res)
+
+        if self.test and self.origin_fine_pifu:
+            res = self.__test_sample_coordinate(res)
 
 
         if self.debug:

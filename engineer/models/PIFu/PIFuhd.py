@@ -39,10 +39,8 @@ class PIFuhdNet(_BasePIFuNet):
             raise EnvironmentError("we should provide backbone,head and depth network")
 
         self.backbone = build_backbone(backbone)
-
-
-        
         self.head = build_head(head)
+
 
         self.global_net = build_model(global_net)
         self.is_train_full_pifuhd = is_train_full_pifuhd
@@ -96,6 +94,8 @@ class PIFuhdNet(_BasePIFuNet):
         if not self.is_train_full_pifuhd:
             logger.info("freeze coarse PIFu!")
             freeze(self.global_net)
+        
+
             
 
     def train(self, mode=True):
@@ -192,6 +192,7 @@ class PIFuhdNet(_BasePIFuNet):
         for preds in self.intermediate_preds_list:
             error += self.error_term(preds, self.labels)
         error /= len(self.intermediate_preds_list)
+
         
         return error
 
