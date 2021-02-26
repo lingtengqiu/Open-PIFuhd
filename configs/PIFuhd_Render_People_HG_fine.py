@@ -31,7 +31,8 @@ model = dict(
             pretrain_weights='./checkpoints/PIFuhd_Render_People_HG/weight/LR=0.001-batch_size=4-schedule=stoneLR/epoch_best.tar'
         ),
         projection_mode='orthogonal',
-        error_term='mse'
+        error_term='mse',
+        is_train_full_pifuhd = False
     )
 
 )
@@ -111,7 +112,7 @@ lr_warm_up = 1e-4
 warm_epoch= 1
 LR=1e-3
 num_epoch=12
-batch_size = 2
+batch_size = 4
 test_batch_size = 1
 scheduler=dict(
     gamma = 0.1,

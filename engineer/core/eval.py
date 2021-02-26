@@ -40,6 +40,17 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
         if cfg.use_back:
             back_normal = batch['back_normal']
             img = torch.cat([img,back_normal],dim = 1)
+        
+        if cfg.fine_pifu:
+            #collect fine pifu datasets
+            crop_query_points = batch['crop_query_points'].cuda()
+            crop_img = batch['crop_img']
+            crop_front_normal = batch['crop_front_normal']
+            crop_back_normal = batch['crop_back_normal']
+            crop_imgs = torch.cat([crop_img,crop_front_normal,crop_back_normal],dim=1).cuda()
+        else:
+            crop_imgs = None
+            crop_query_points = None
 
         try:
             origin_calib = batch['calib'][0]
@@ -52,14 +63,19 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
         save_gallery_path = os.path.join(gallery_id,name.split('/')[-2])
         os.makedirs(save_gallery_path,exist_ok=True)
 
+
         data=    {'name': name,
             'img': img,
             'calib': calib.unsqueeze(0),
             'mask': None,
             'b_min': B_MIN,
             'b_max': B_MAX,
-            'origin_calib':origin_calib}
-        gen_mesh(cfg,model,data,save_gallery_path)
+            'origin_calib':origin_calib,
+            'crop_img':crop_imgs,
+            'crop_query_points':crop_query_points
+        }
+        with torch.no_grad():
+            gen_mesh(cfg,model,data,save_gallery_path)
 
 
 def test_epoch(model, cfg, args, test_loader, epoch,gallery_id):

@@ -7,7 +7,7 @@ import torch
 
 def reconstruction(net, calib_tensor,
                    resolution, b_min, b_max,
-                   use_octree=False, num_samples=50000, transform=None):
+                   use_octree=False, num_samples=50000, transform=None,crop_query_points = None):
     '''
     Reconstruct meshes from sdf predicted by the network.
     :param net: a BasePixImpNet object. call image filter beforehead.
@@ -18,6 +18,7 @@ def reconstruction(net, calib_tensor,
     :param b_max: bounding box corner [x_max, y_max, z_max]
     :param use_octree: whether to use octree acceleration
     :param num_samples: how many points to query each gpu iteration
+    :param crop_query_points: crop_query_points used for fine-pifu inference
     :return: marching cubes results.
     '''
     # First we create a grid by resolution
@@ -30,7 +31,14 @@ def reconstruction(net, calib_tensor,
         points = np.expand_dims(points, axis=0)
         points = np.repeat(points, net.num_views, axis=0)
         samples = torch.from_numpy(points).cuda().float()
-        net.query(samples, calib_tensor)
+        if crop_query_points is None:
+            #coarse-pifu
+            net.query(samples, calib_tensor)
+        else:
+            #fine-pifu
+            net.global_net.query(samples, calib_tensor)
+            local_features = net.global_net.get_merge_feature()
+            net.query(samples, local_features)
         pred = net.get_preds()[0][0]
         return pred.detach().cpu().numpy()
     # Then we evaluate the grid
@@ -75,7 +83,18 @@ def gen_mesh(cfg, net, data, save_path, use_octree=True):
 
     if len(image_tensor.shape) == 3:
         image_tensor = image_tensor[None,...]
-    net.extract_features(image_tensor)
+    
+    if 'crop_img' not in data:
+        #coarse-pifu inference
+        net.extract_features(image_tensor)
+        crop_query_points = None
+    else:
+        #fine-pifu inference
+        crop_imgs=  data['crop_img']
+        crop_query_points = data['crop_query_points']
+        net.global_net.extract_features(image_tensor)
+        net.extract_features(crop_imgs)
+
     b_min = data['b_min']
     b_max = data['b_max']
     save_img_path = os.path.join(save_path,"obj.jpg")
@@ -88,7 +107,7 @@ def gen_mesh(cfg, net, data, save_path, use_octree=True):
 
     Image.fromarray(np.uint8(save_img[:,:,::-1])).save(save_img_path)
 
-    verts, faces, _, _ = reconstruction(net, calib_tensor, cfg.resolution, b_min, b_max, use_octree=use_octree)
+    verts, faces, _, _ = reconstruction(net, calib_tensor, cfg.resolution, b_min, b_max, use_octree=use_octree,crop_query_points = crop_query_points)
     
     verts,flip_face = transfer_uv_to_world(verts,origin_calib_tensor)
     save_obj_mesh(os.path.join(save_path,"mesh.obj"), verts, faces,flip_face)

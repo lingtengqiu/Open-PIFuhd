@@ -55,7 +55,7 @@ parser.add_argument('--outputResW', default=128, type=int,
 "----------------------------- Distribution options -----------------------------"
 parser.add_argument('--dist', action = 'store_true', help='distributed training or not')
 parser.add_argument("--local_rank", default=-1, type=int)
-parser.add_argument("--num_workers", default=64, type=int)
+parser.add_argument("--num_workers", default=8, type=int)
 
 "----------------------------- checkpoint configs -----------------------------"
 parser.add_argument('--resume', action = 'store_true',help="resume checkpoint")

@@ -94,8 +94,6 @@ class PIFuhdNet(_BasePIFuNet):
         if not self.is_train_full_pifuhd:
             logger.info("freeze coarse PIFu!")
             freeze(self.global_net)
-        
-
             
 
     def train(self, mode=True):
@@ -215,7 +213,9 @@ class PIFuhdNet(_BasePIFuNet):
                 self.global_net.query(points=points, calibs=calibs, transforms=transforms, labels=labels)
                 local_features = self.global_net.get_merge_feature()
         else:
-            raise NotImplementedError
+            self.global_net.extract_features(images)
+            self.global_net.query(points=points, calibs=calibs, transforms=transforms, labels=labels)
+            local_features = self.global_net.get_merge_feature()
         
         # Phase 2: Get global image feature
         self.extract_features(crop_imgs)
