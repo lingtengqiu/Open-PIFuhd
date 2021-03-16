@@ -69,6 +69,7 @@ class RPDataset(Dataset):
         self.sigma = sample_sigma if type(sample_sigma) == list else [sample_sigma]
         #view from render
         self.__yaw_list = list(range(0,360,span))
+        
         self.__pitch_list = [0]
         self.normal = normal
         self._get_infos()
@@ -521,8 +522,10 @@ class RPDataset(Dataset):
             mask_list.append(mask)
             if len(mask.shape)!=len(render.shape):
                 mask = mask.unsqueeze(-1)
-            if len(back_mask.shape)!=len(render.shape):
-                back_mask = back_mask.unsqueeze(-1)
+
+            if self.normal:
+                if len(back_mask.shape)!=len(render.shape):
+                    back_mask = back_mask.unsqueeze(-1)
             #remove background
             
             render = mask.expand_as(render) * render
@@ -537,16 +540,25 @@ class RPDataset(Dataset):
                 front_normal_list.append(front_normal)
                 back_normal_list.append(back_normal)
                 back_mask_list.append(back_mask)
-        return {
-            'name':render_path,
-            'img': torch.stack(render_list, dim=0),
-            'calib': torch.stack(calib_list, dim=0),
-            'extrinsic': torch.stack(extrinsic_list, dim=0),
-            'mask': torch.stack(mask_list, dim=0),
-            'front_normal':torch.stack(front_normal_list,dim=0),
-            'back_normal':torch.stack(back_normal_list,dim=0),
-            'back_mask': torch.stack(back_mask_list,dim=0)
-        }
+        if self.normal:
+            return {
+                'name':render_path,
+                'img': torch.stack(render_list, dim=0),
+                'calib': torch.stack(calib_list, dim=0),
+                'extrinsic': torch.stack(extrinsic_list, dim=0),
+                'mask': torch.stack(mask_list, dim=0),
+                'front_normal':torch.stack(front_normal_list,dim=0),
+                'back_normal':torch.stack(back_normal_list,dim=0),
+                'back_mask': torch.stack(back_mask_list,dim=0)
+            }
+        else:
+            return {
+                'name':render_path,
+                'img': torch.stack(render_list, dim=0),
+                'calib': torch.stack(calib_list, dim=0),
+                'extrinsic': torch.stack(extrinsic_list, dim=0),
+                'mask': torch.stack(mask_list, dim=0),
+            }
 
     #*********************property********************#
     @property 

@@ -3,7 +3,7 @@ training fine PIFu with gt normal map
 '''
 import numpy as np
 "---------------------------- debug  options -----------------------------"
-debug = False
+debug = True
 "---------------------------- normal options -----------------------------"
 use_front = True
 use_back = True

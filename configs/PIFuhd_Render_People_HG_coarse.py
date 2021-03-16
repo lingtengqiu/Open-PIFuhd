@@ -2,9 +2,13 @@
 training coarse PIFu with gt normal map
 '''
 import numpy as np
+"---------------------------- debug  options -----------------------------"
+debug = False
 "---------------------------- normal options -----------------------------"
 use_front = True
 use_back = True
+fine_pifu =False
+
 "----------------------------- Model options -----------------------------"
 model = dict(
     PIFu=dict(
@@ -50,7 +54,7 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
-    debug=True,
+    debug=debug,
     span=1,
     normal = True,
     sample_aim = 5.
@@ -69,7 +73,7 @@ data = dict(
     num_sample_color = 0,
     sample_sigma=[5.,3.],
     check_occ='trimesh',
-    debug=False,
+    debug=debug,
     span = 90,
     normal = True,
     sample_aim = 5.
@@ -104,7 +108,7 @@ start_val_epoch = 0
 "----------------------------- inference setting -------------------------------"
 resolution = 256 #for inference
 "-------------------------------- config name --------------------------------"
-name='PIFuhd_Render_People_HG'
+name='PIFuhd_Render_People_HG_coarse'
 
 "-------------------------------- render --------------------------------"
 render_cfg = dict(

@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from engineer.utils.geometry import index, orthogonal, perspective
 from torch.nn import init
-
 class _BasePIFuNet(nn.Module):
     def __init__(self,
                  projection_mode:str='orthogonal',

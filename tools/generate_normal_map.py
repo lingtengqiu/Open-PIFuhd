@@ -38,11 +38,12 @@ import cv2
 from PIL import Image
 import numpy as np
 
+
 def generate(dataset):
+    
     for i in range(0,len(dataset.subjects)):
         obj = dataset[i]
         target_mesh_path = obj['mesh_path']
-        name = target_mesh_path.split("/")[-1]
         target = glob.glob(os.path.join(target_mesh_path,"*.obj"))[-1]
         tgt_mesh = trimesh.load(target)
         for j in tqdm(range(0,360)):
@@ -62,6 +63,7 @@ def generate(dataset):
             tgt_img = np.asarray(tgt_img).copy()
             tgt_img[img_mask==0] = 0
             img = Image.fromarray(tgt_img)
+
             img.save(os.path.join(normal_path,'{}_0_00.jpg'.format(j)))
 
 

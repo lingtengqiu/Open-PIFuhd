@@ -13,8 +13,11 @@ import time
 import logging 
 import torch.distributed as dist
 from engineer.utils.mesh_utils import gen_mesh
+import torch.nn.functional as F
 logger = logging.getLogger('logger.trainer')
+import numpy as np 
 
+torch.nn.NLLLoss
 
 def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
     model.eval()
@@ -59,6 +62,39 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
             origin_calib = None
             projection_matrix[1, 1] = -1
             calib = torch.Tensor(projection_matrix).float().cuda()
+        #crop_upper_body
+
+        h0 = int(np.random.rand()*20)
+        h1 = int(h0+128 + np.random.rand()* 256)
+
+        
+        w0 = int(64+np.random.rand()*128)
+        w1 = int(w0+128 + np.random.rand()* 256)
+        h_scale = (h1 - h0)/512
+        w_scale = (w1 - w0)/512
+        h0 = h0/512
+        w0 = w0/512
+        
+
+        h0 = int(h0*1024)
+        w0 = int(w0*1024)
+        h_scale = int(h_scale*1024)
+        w_scale = int(w_scale*1024)
+        h1 = h0+h_scale
+        w1 = w0+w_scale
+
+        crop_imgs = crop_imgs[...,h0:h1,w0:w1]
+        
+        diff = abs(h_scale - w_scale)//2
+        crop_imgs = F.pad(crop_imgs,(diff,diff,0,0),'constant',0.) if h_scale>w_scale else F.pad(crop_imgs,(0,0,diff,diff),'constant',0.)
+        crop_imgs_ori = crop_imgs.clone()
+        crop_imgs = F.interpolate(crop_imgs_ori,(1024,1024)).cuda()
+        img = F.interpolate(crop_imgs_ori,(512,512)).cuda()
+
+
+        origin_calib = None
+        projection_matrix[1, 1] = -1
+        calib = torch.Tensor(projection_matrix).float().cuda()
 
         save_gallery_path = os.path.join(gallery_id,name.split('/')[-2])
         os.makedirs(save_gallery_path,exist_ok=True)

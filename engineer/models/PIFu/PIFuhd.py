@@ -122,7 +122,7 @@ class PIFuhdNet(_BasePIFuNet):
 
         if not self.training:
             self.im_feat_list = [self.im_feat_list[-1]]
-    def query(self, crop_query_points, local_features,labels=None):
+    def query(self, crop_query_points, local_features,labels=None,calib_tensor =None):
         # type: (Tensor, Tensor, Tensor) -> Tensor
         r'''Only for fine PIFuhd
         Given 3D points, query the network predictions for each point.
@@ -134,6 +134,8 @@ class PIFuhdNet(_BasePIFuNet):
             crop_query_points: [B, 2, N] crop query points according to crop window_size
             local_features: [B, C_fea, N] query points features from local features
             labels: gt of queried points
+            calib_tensor: use to map sample_coordinate, default is None. When you employee full points x,y,z\in [-1,1], 
+                you need to pass calib_tensor 
         Return: 
             [B, Res, N] predictions for each point
         '''
@@ -141,6 +143,9 @@ class PIFuhdNet(_BasePIFuNet):
         if labels is not None:
             self.labels = labels
         #intial, we define project matrix is orthogonal
+        
+        if calib_tensor is not None:
+            crop_query_points = self.projection(crop_query_points, calib_tensor, None)
         xy = crop_query_points[:, :2, :]
 
 

@@ -38,7 +38,8 @@ def reconstruction(net, calib_tensor,
             #fine-pifu
             net.global_net.query(samples, calib_tensor)
             local_features = net.global_net.get_merge_feature()
-            net.query(samples, local_features)
+            
+            net.query(samples, local_features,calib_tensor = calib_tensor)
         pred = net.get_preds()[0][0]
         return pred.detach().cpu().numpy()
     # Then we evaluate the grid
