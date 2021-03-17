@@ -44,10 +44,6 @@ if __name__ == "__main__":
 
 
     test_data_set = build_dataset(cfg.data.test)
-
-
-    
-
     test_dataloader = build_dataloader(test_data_set,cfg,args,phase='test')
     logger.info("test data size:{}".format(len(test_data_set)))
 
