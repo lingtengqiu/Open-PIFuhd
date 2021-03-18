@@ -12,7 +12,7 @@ import random
 import pyexr
 import argparse
 from tqdm import tqdm
-
+import numpy as np
 
 def make_rotate(rx, ry, rz):
     sinX = np.sin(rx)
@@ -163,16 +163,28 @@ def render_prt_ortho(out_path, folder_name, subject_name, shs, rndr, rndr_uv, im
     face_prt_file = os.path.join(folder_name, 'bounce', 'face.npy')
     if not os.path.exists(face_prt_file):
         print('ERROR: face prt file does not exist!!!', prt_file)
-        return
+        return        
     text_file = os.path.join(folder_name, 'tex', subject_name + '_dif_2k.jpg')
     if not os.path.exists(text_file):
         print('ERROR: dif file does not exist!!', text_file)
         return             
 
     texture_image = cv2.imread(text_file)
-    texture_image = cv2.cvtColor(texture_image, cv2.COLOR_BGR2RGB)
+    texture_image = cv2.cvtColor(texture_image, cv2.COLOR_BGR2RGB) 
+    a = texture_image[0:2048,0:2048,...]
+    b = texture_image[2048:,2048:,...] 
+    null_a = np.zeros(a.shape,np.uint8)
+    null_b = np.zeros(a.shape,dtype = np.uint8)
+    img_t = np.concatenate([null_a,b],axis = 1)
+    img_b = np.concatenate([a,null_b],axis = 1)
+    texture_image = np.concatenate([img_t,img_b],axis = 0)
+ 
+
+
+
 
     vertices, faces, normals, faces_normals, textures, face_textures = load_obj_mesh(mesh_file, with_normal=True, with_texture=True)
+
     vmin = vertices.min(0)
     vmax = vertices.max(0)
     up_axis = 1 if (vmax-vmin).argmax() == 1 else 2
@@ -187,7 +199,8 @@ def render_prt_ortho(out_path, folder_name, subject_name, shs, rndr, rndr_uv, im
     tan, bitan = compute_tangent(vertices, faces, normals, textures, face_textures)
     prt = np.loadtxt(prt_file)
     face_prt = np.load(face_prt_file)
-    rndr.set_mesh(vertices, faces, normals, faces_normals, textures, face_textures, prt, face_prt, tan, bitan)    
+
+    rndr.set_mesh(vertices, faces, normals, faces_normals, textures, face_textures, prt, face_prt, tan, bitan)
     rndr.set_albedo(texture_image)
 
     rndr_uv.set_mesh(vertices, faces, normals, faces_normals, textures, face_textures, prt, face_prt, tan, bitan)   
@@ -274,7 +287,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--out_dir', type=str, default='/home/shunsuke/Documents/hf_human')
     parser.add_argument('-m', '--ms_rate', type=int, default=1, help='higher ms rate results in less aliased output. MESA renderer only supports ms_rate=1.')
     parser.add_argument('-e', '--egl',  action='store_true', help='egl rendering option. use this when rendering with headless server with NVIDIA GPU')
-    parser.add_argument('-s', '--size',  type=int, default=512, help='rendering image size')
+    parser.add_argument('-s', '--size',  type=int, default=1024, help='rendering image size')
     args = parser.parse_args()
 
     # NOTE: GL context has to be created before any other OpenGL function loads.

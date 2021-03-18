@@ -143,7 +143,7 @@ class TrainDataset(Dataset):
 
             # loading calibration data
             param = np.load(param_path, allow_pickle=True)
-            # pixel unit / world unit
+            # pixel unit / world unit  
             ortho_ratio = param.item().get('ortho_ratio')
             # world unit / model unit
             scale = param.item().get('scale')
@@ -161,6 +161,7 @@ class TrainDataset(Dataset):
             scale_intrinsic[1, 1] = -scale / ortho_ratio
             scale_intrinsic[2, 2] = scale / ortho_ratio
             # Match image pixel space to image uv space
+            #uv space is [-1,1] we map [-256,255]->[-1,1]
             uv_intrinsic = np.identity(4)
             uv_intrinsic[0, 0] = 1.0 / float(self.opt.loadSize // 2)
             uv_intrinsic[1, 1] = 1.0 / float(self.opt.loadSize // 2)
@@ -222,6 +223,8 @@ class TrainDataset(Dataset):
                     blur = GaussianBlur(np.random.uniform(0, self.opt.aug_blur))
                     render = render.filter(blur)
 
+
+
             intrinsic = np.matmul(trans_intrinsic, np.matmul(uv_intrinsic, scale_intrinsic))
             calib = torch.Tensor(np.matmul(intrinsic, extrinsic)).float()
             extrinsic = torch.Tensor(extrinsic).float()
@@ -251,18 +254,20 @@ class TrainDataset(Dataset):
             torch.manual_seed(1991)
         mesh = self.mesh_dic[subject]
         surface_points, _ = trimesh.sample.sample_surface(mesh, 4 * self.num_sample_inout)
+
         sample_points = surface_points + np.random.normal(scale=self.opt.sigma, size=surface_points.shape)
+
 
         # add random points within image space
         length = self.B_MAX - self.B_MIN
         random_points = np.random.rand(self.num_sample_inout // 4, 3) * length + self.B_MIN
+
+
         sample_points = np.concatenate([sample_points, random_points], 0)
         np.random.shuffle(sample_points)
-
         inside = mesh.contains(sample_points)
         inside_points = sample_points[inside]
         outside_points = sample_points[np.logical_not(inside)]
-
         nin = inside_points.shape[0]
         inside_points = inside_points[
                         :self.num_sample_inout // 2] if nin > self.num_sample_inout // 2 else inside_points

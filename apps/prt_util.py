@@ -6,6 +6,9 @@ from scipy.special import sph_harm
 import argparse
 from tqdm import tqdm
 
+import multiprocessing as mp
+from multiprocessing import Pool
+
 def factratio(N, D):
     if N >= D:
         prod = 1.0
@@ -122,13 +125,30 @@ def computePRT(mesh_path, n, order):
     # when loading PRT in other program, use the triangle list from trimesh.
     return PRT, mesh.faces
 
+
+def main(input,n=40):
+    names = os.listdir(input)
+    names = [os.path.join(input,name) for name in names]
+    names = sorted(names)
+    for name in tqdm(names):
+        testPRT(name,n)
+
+
 def testPRT(dir_path, n=40):
     if dir_path[-1] == '/':
         dir_path = dir_path[:-1]
     sub_name = dir_path.split('/')[-1][:-4]
     obj_path = os.path.join(dir_path, sub_name + '_100k.obj')
-    os.makedirs(os.path.join(dir_path, 'bounce'), exist_ok=True)
+    try:
+        assert os.path.exists(obj_path)
+    except:
+        obj_path = os.path.join(dir_path, sub_name + '_200k.obj')
+        assert os.path.exists(obj_path)
+    
+    if os.path.exists(os.path.join(dir_path, 'bounce')):
+        return 
 
+    os.makedirs(os.path.join(dir_path, 'bounce'), exist_ok=True)
     PRT, F = computePRT(obj_path, n, 2)
     np.savetxt(os.path.join(dir_path, 'bounce', 'bounce0.txt'), PRT, fmt='%.8f')
     np.save(os.path.join(dir_path, 'bounce', 'face.npy'), F)
@@ -139,4 +159,4 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--n_sample', type=int, default=40, help='squared root of number of sampling. the higher, the more accurate, but slower')
     args = parser.parse_args()
 
-    testPRT(args.input)
+    main(args.input)

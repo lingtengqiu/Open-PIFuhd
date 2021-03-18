@@ -90,6 +90,9 @@ def perspective(fovy, aspect, zNear, zFar):
 
 def ortho(left, right, bottom, top, zNear, zFar):
     # res = np.ones([4, 4], dtype=np.float32)
+    #  perspective = ortho(-self.width * self.ortho_ratio / 2, self.width * self.ortho_ratio / 2,
+    #     -self.height * self.ortho_ratio / 2, self.height * self.ortho_ratio / 2,
+    #     z_near, z_far)
     res = identity()
     res[0][0] = 2 / (right - left)
     res[1][1] = 2 / (top - bottom)

@@ -3,7 +3,7 @@ import random
 
 from .framework import *
 from .cam_render import CamRender
-
+import cv2
 class PRTRender(CamRender):
     def __init__(self, width=1600, height=1200, name='PRT Renderer', uv_mode=False, ms_rate=1, egl=False):
         program_files = ['prt.vs', 'prt.fs'] if not uv_mode else ['prt_uv.vs', 'prt_uv.fs']
@@ -97,6 +97,7 @@ class PRTRender(CamRender):
             self.vert_buffer[mat_name] = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.vert_buffer[mat_name])
         glBufferData(GL_ARRAY_BUFFER, self.vert_data[mat_name], GL_STATIC_DRAW)
+
 
         self.uv_data[mat_name] = uvs[faces_uvs.reshape([-1])]
         if mat_name not in self.uv_buffer.keys():
@@ -265,6 +266,7 @@ class PRTRender(CamRender):
         glEnable(GL_MULTISAMPLE)
 
         glUseProgram(self.program)
+
         glUniformMatrix4fv(self.norm_mat_unif, 1, GL_FALSE, self.normalize_matrix.transpose())
         glUniformMatrix4fv(self.model_mat_unif, 1, GL_FALSE, self.model_view_matrix.transpose())
         glUniformMatrix4fv(self.persp_mat_unif, 1, GL_FALSE, self.projection_matrix.transpose())
@@ -282,6 +284,7 @@ class PRTRender(CamRender):
         glUniform1ui(self.analyticUnif, GLuint(1) if self.analytic else GLuint(0))
 
         glUniform3fv(self.shcoeff_unif, 9, self.shcoeffs)
+
 
         glUniformMatrix3fv(self.rot_mat_unif, 1, GL_FALSE, self.rot_matrix.transpose())
 

@@ -9,6 +9,7 @@ class BasePIFuNet(nn.Module):
                  projection_mode='orthogonal',
                  error_term=nn.MSELoss(),
                  ):
+
         """
         :param projection_mode:
         Either orthogonal or perspective.

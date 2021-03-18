@@ -240,6 +240,7 @@ def load_obj_mesh(mesh_file, with_normal=False, with_texture=False):
     vertices = np.array(vertex_data)
     faces = np.array(face_data) - 1
 
+
     if with_texture and with_normal:
         uvs = np.array(uv_data)
         face_uvs = np.array(face_uv_data) - 1
