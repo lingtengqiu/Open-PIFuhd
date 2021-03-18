@@ -150,11 +150,11 @@ I provide bool params(debug in all of config files) to you to check whether your
 
 **As following show, left is input image, mid is the results of coarse-pifuhd, right is fine-pifuhd**
 
-![](/home/adminroot/CUHK2020-2024/implicit_presentation/Open-PIFu/show_image/compare_imgs/a.png)
+![](./show_image/compare_imgs/a.png)
 
-![](/home/adminroot/CUHK2020-2024/implicit_presentation/Open-PIFu/show_image/compare_imgs/b.png)
+![](./show_image/compare_imgs/b.png)
 
-![](/home/adminroot/CUHK2020-2024/implicit_presentation/Open-PIFu/show_image/compare_imgs/c.png)
+![](./show_image/compare_imgs/c.png)
 
 
 
