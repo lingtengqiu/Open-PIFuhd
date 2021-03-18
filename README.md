@@ -160,11 +160,11 @@ I provide bool params(debug in all of config files) to you to check whether your
 
 ## Reconstruction on Render People Datasets
 
-|                                       | IoU        | ACC        | recall |  P2S  | Normal | Chamfer |
-| :------------------------------------ | ---------- | ---------- | ------ | :---: | :----: | :-----: |
-| PIFu                                  | 0.748      | 0.880      | 0.856  | 1.801 | 0.1446 |  2.00   |
-| Coarse-PIFuhd(+Front and back normal) | 0.865(5cm) | 0.931(5cm) | 0.923  | 1.242 | 0.1205 | 1.4015  |
-| Fine-PIFuhd(+Front and back normal)   | 0.865(3cm) | 0.931(3cm) | 0.923  | 1.380 | 0.1138 |  1.420  |
+|                                       | IoU        | ACC        | recall     |  P2S  | Normal | Chamfer |
+| :------------------------------------ | ---------- | ---------- | ---------- | :---: | :----: | :-----: |
+| PIFu                                  | 0.748      | 0.880      | 0.856      | 1.801 | 0.1446 |  2.00   |
+| Coarse-PIFuhd(+Front and back normal) | 0.865(5cm) | 0.931(5cm) | 0.923(5cm) | 1.242 | 0.1205 | 1.4015  |
+| Fine-PIFuhd(+Front and back normal)   | 0.813(3cm) | 0.896(3cm) | 0.904(5cm) |   -   | 0.1138 |    -    |
 
 There is an issue why p2s of fine-pifuhd is bit large than coarse-pifuhd. This is because I do not add some post-processing to clean some chaos in reconstruction. However, the details of human mesh produced by fine-pifuhd are obviously better than coarse-pifuhd.
 
