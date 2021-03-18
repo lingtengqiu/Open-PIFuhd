@@ -140,15 +140,53 @@ we provide rendering code using free models in [RenderPeople](https://renderpeop
 
 ```
 
+## Debug
+
+I provide bool params(debug in all of config files) to you to check whether your points sampled from mesh is right. There are examples:
+
+![](./show_image/pifuhd_crop_debug/pifuhd_fine_debug.png)
+
+## Visualization
+
+**As following show, left is input image, mid is the results of coarse-pifuhd, right is fine-pifuhd**
+
+![](/home/adminroot/CUHK2020-2024/implicit_presentation/Open-PIFu/show_image/compare_imgs/a.png)
+
+![](/home/adminroot/CUHK2020-2024/implicit_presentation/Open-PIFu/show_image/compare_imgs/b.png)
+
+![](/home/adminroot/CUHK2020-2024/implicit_presentation/Open-PIFu/show_image/compare_imgs/c.png)
+
 
 
 ## Reconstruction on Render People Datasets
 
-|                                       | IoU        | ACC        | recall | P2S    | Normal | Chamfer |
-| :------------------------------------ | ---------- | ---------- | ------ | ------ | :----: | :-----: |
-| PIFu                                  | 0.748      | 0.880      | 0.856  | 1.801  | 0.1446 |  2.00   |
-| Coarse-PIFuhd(+Front and back normal) | 0.865(5cm) | 0.931(5cm) | 0.923  | 1.242  | 0.1205 | 1.4015  |
-| Fine-PIFuhd(+Front and back normal)   | 0.865(3cm) | 0.931(3cm) | 0.923  | 1.2397 | 0.1201 | 1.4013  |
+|                                       | IoU        | ACC        | recall |  P2S  | Normal | Chamfer |
+| :------------------------------------ | ---------- | ---------- | ------ | :---: | :----: | :-----: |
+| PIFu                                  | 0.748      | 0.880      | 0.856  | 1.801 | 0.1446 |  2.00   |
+| Coarse-PIFuhd(+Front and back normal) | 0.865(5cm) | 0.931(5cm) | 0.923  | 1.242 | 0.1205 | 1.4015  |
+| Fine-PIFuhd(+Front and back normal)   | 0.865(3cm) | 0.931(3cm) | 0.923  | 1.380 | 0.1138 |  1.420  |
 
-## Visualization
+There is an issue why p2s of fine-pifuhd is bit large than coarse-pifuhd. This is because I do not add some post-processing to clean some chaos in reconstruction. However, the details of human mesh produced by fine-pifuhd are obviously better than coarse-pifuhd.
 
+## About Me
+
+I hope that this project could provide some contributions to our communities, especially for implicit-field.
+
+By the way, If you think the project is helpful to you, pls don’t forget to star this project : ) 
+
+## Related Research
+
+**[Monocular Real-Time Volumetric Performance Capture (ECCV 2020)](https://project-splinter.github.io/)**
+ *Ruilong Li\*, Yuliang Xiu\*, Shunsuke Saito, Zeng Huang, Kyle Olszewski, Hao Li*
+
+**[PIFuHD: Multi-Level Pixel-Aligned Implicit Function for High-Resolution 3D Human Digitization (CVPR 2020)](https://shunsukesaito.github.io/PIFuHD/)**
+ *Shunsuke Saito, Tomas Simon, Jason Saragih, Hanbyul Joo*
+
+**[ARCH: Animatable Reconstruction of Clothed Humans (CVPR 2020)](https://arxiv.org/pdf/2004.04572.pdf)**
+ *Zeng Huang, Yuanlu Xu, Christoph Lassner, Hao Li, Tony Tung*
+
+**[Robust 3D Self-portraits in Seconds (CVPR 2020)](http://www.liuyebin.com/portrait/portrait.html)**
+ *Zhe Li, Tao Yu, Chuanyu Pan, Zerong Zheng, Yebin Liu*
+
+**[Learning to Infer Implicit Surfaces without 3d Supervision (NeurIPS 2019)](http://papers.nips.cc/paper/9039-learning-to-infer-implicit-surfaces-without-3d-supervision.pdf)**
+ *Shichen Liu, Shunsuke Saito, Weikai Chen, Hao Li*

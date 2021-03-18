@@ -3,7 +3,7 @@ training fine PIFu with gt normal map
 '''
 import numpy as np
 "---------------------------- debug  options -----------------------------"
-debug = True
+debug = False
 "---------------------------- normal options -----------------------------"
 use_front = True
 use_back = True
@@ -28,7 +28,7 @@ model = dict(
             projection_mode='orthogonal',
             error_term='mse'
             ),
-            pretrain_weights='./checkpoints/PIFuhd_Render_People_HG/weight/LR=0.001-batch_size=4-schedule=stoneLR/epoch_best.tar'
+            pretrain_weights='./checkpoints/PIFuhd_Render_People_HG_coarse/weight/LR=0.001-batch_size=8-schedule=stoneLR/epoch_best.tar'
         ),
         projection_mode='orthogonal',
         error_term='mse',
@@ -123,7 +123,7 @@ save_fre_epoch = 1
 val_epoch = 1
 start_val_epoch = 0
 "----------------------------- inference setting -------------------------------"
-resolution = 256 #for inference
+resolution = 512 #for inference
 "-------------------------------- config name --------------------------------"
 name='PIFuhd_Render_People_HG_fine'
 

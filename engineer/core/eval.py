@@ -92,7 +92,6 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
         save_gallery_path = os.path.join(gallery_id,name.split('/')[-2])
         os.makedirs(save_gallery_path,exist_ok=True)
 
-
         data=    {'name': name,
             'img': img,
             'calib': calib.unsqueeze(0),
@@ -100,7 +99,7 @@ def inference(model, cfg, args, test_loader, epoch,gallery_id,gallery_time=73):
             'b_min': B_MIN,
             'b_max': B_MAX,
             'origin_calib':origin_calib,
-            # 'crop_img':crop_imgs,
+            'crop_img':crop_imgs,
             'crop_query_points':crop_query_points
         }
         with torch.no_grad():

@@ -5,6 +5,7 @@ from engineer.utils.sdf import *
 from skimage import measure
 import torch
 
+
 def reconstruction(net, calib_tensor,
                    resolution, b_min, b_max,
                    use_octree=False, num_samples=50000, transform=None,crop_query_points = None):
@@ -31,6 +32,7 @@ def reconstruction(net, calib_tensor,
         points = np.expand_dims(points, axis=0)
         points = np.repeat(points, net.num_views, axis=0)
         samples = torch.from_numpy(points).cuda().float()
+
         if crop_query_points is None:
             #coarse-pifu
             net.query(samples, calib_tensor)
@@ -84,7 +86,7 @@ def gen_mesh(cfg, net, data, save_path, use_octree=True):
     if len(image_tensor.shape) == 3:
         image_tensor = image_tensor[None,...]
     
-    if 'crop_img' not in data:
+    if not cfg.fine_pifu:
         #coarse-pifu inference
         net.extract_features(image_tensor)
         crop_query_points = None
