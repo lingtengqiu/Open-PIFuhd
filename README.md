@@ -132,6 +132,14 @@ python ./tools/eval_pifu.py  --config ./configs/PIFuhd_Render_People_HG_coarse.p
 python ./tools/eval_pifu.py  --config ./configs/PIFuhd_Render_People_HG_fine.py
 ```
 
+
+## Pretrained weights
+
+We provide the pretrained models of PIFuhd([fine-pifuhd(https://drive.google.com/file/d/1u7RGEQaeStGUxl_m7xPRORZa9pkpvwDA/view?usp=sharing)], [coarse-pifuhd](https://drive.google.com/file/d/1m-KAq1phC-AGAjfaN1N9PDRYoiJWDSJZ/view?usp=sharing))
+
+Note that the training models use front or back normal map rendered from mesh instead of being obtained by GANs. Therefore you need render the normal map of test obj 
+
+
 ## Demo
 
 we provide rendering code using free models in [RenderPeople](https://renderpeople.com/free-3d-people/). This tutorial uses `rp_dennis_posed_004` model. Please download the model from [this link](https://renderpeople.com/sample/free/rp_dennis_posed_004_OBJ.zip) and unzip the content. Use following command to reconstruct the model:
