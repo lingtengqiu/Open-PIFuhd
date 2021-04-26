@@ -51,7 +51,7 @@ We fine that only employ  Vgg loss and L1 loss are better that GAN loss for back
 
 |                            input                             |                             real                             |                             fake                             |
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
-| ![epoch018_input_label](/home/adminroot/CUHK2020-2024/implicit_presentation/pix2pixHD_loss_G_rp_back/checkpoints/image2backnormal1024/web/images/epoch018_input_label.jpg) | ![epoch018_real_image](/home/adminroot/CUHK2020-2024/implicit_presentation/pix2pixHD_loss_G_rp_back/checkpoints/image2backnormal1024/web/images/epoch018_real_image.jpg) | ![epoch018_synthesized_image](/home/adminroot/CUHK2020-2024/implicit_presentation/pix2pixHD_loss_G_rp_back/checkpoints/image2backnormal1024/web/images/epoch018_synthesized_image.jpg) |
+| ![epoch018_input_label](./checkpoints/image2backnormal1024/web/images/epoch018_input_label.jpg) | ![epoch018_real_image](./checkpoints/image2backnormal1024/web/images/epoch018_real_image.jpg) | ![epoch018_synthesized_image](./checkpoints/image2backnormal1024/web/images/epoch018_synthesized_image.jpg) |
 
   
 
